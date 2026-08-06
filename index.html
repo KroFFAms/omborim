@@ -2390,32 +2390,36 @@ function supDel(id){if(!confirm('Ta\u2019minotchi o\u2019chirilsinmi?'))return;c
 var _supDueTarget=null;
 function supDueOpen(id){_supDueTarget=id;var inp=document.getElementById('supDueInp');if(!inp)return;var s=getSup();for(var i=0;i<s.length;i++)if(s[i].id===id){inp.value=s[i].due||'';break;}if(inp.showPicker){try{inp.showPicker();return;}catch(e){}}inp.click();}
 function _supDuePick(){var inp=document.getElementById('supDueInp');if(!inp||!_supDueTarget)return;var id=_supDueTarget;_supDueTarget=null;commitEvent('supdue',{id:id,due:inp.value||''});renderKirim();toast(inp.value?('\u2705 To\u2019lov muddati: '+_dmy(inp.value)):'Muddat olib tashlandi');}
-function openOps(){if(typeof menuOpen==='function')menuOpen(false);_opsBuild();}
 function closeOps(){var o=document.getElementById('opsOv');if(o)o.remove();}
-function _opLabel(k){return k==='sale'?'Sotuv':k==='kirim'?'Kirim':k==='kassa'?'Kassa':k==='pay'?'To\u2018lov':k;}
+function closeOpDet(){var o=document.getElementById('opDetOv');if(o)o.remove();}
+function openOps(){if(typeof menuOpen==='function')menuOpen(false);_opsBuild();}
+function _opLabel(k){return k==='sale'?'Sotuv':k==='kirim'?'Kirim':k==='kassa'?'Kassa':k==='pay'?'To‘lov':k;}
 function _opIcon(k,pl){return k==='sale'?'🛒':k==='kirim'?'📥':k==='kassa'?(pl&&pl.dir==='out'?'💸':'💵'):k==='pay'?'💳':'•';}
-function _opWhen(ts,full){var t=new Date(ts),p=function(n){return ('0'+n).slice(-2);};var d=p(t.getDate())+'.'+p(t.getMonth()+1)+(full?('.'+t.getFullYear()):'')+' '+p(t.getHours())+':'+p(t.getMinutes());return d;}
+function _opWhen(ts,full){var t=new Date(ts),p=function(n){return ('0'+n).slice(-2);};return p(t.getDate())+'.'+p(t.getMonth()+1)+(full?('.'+t.getFullYear()):'')+' '+p(t.getHours())+':'+p(t.getMinutes());}
+function _opDesc(e,supMap,custMap){var pl=e.payload||{},desc='',amt=0;
+  if(e.kind==='sale'){desc=((pl.items?pl.items.length:0))+' tovar'+(pl.cust?' · '+esc(pl.cust):'');amt=pl.total||0;}
+  else if(e.kind==='kirim'){var pr=findProd(pl.pid);desc=(pr?esc(pr.nom):esc(''+pl.pid))+' · +'+grp(pl.qty);amt=pl.summa||0;}
+  else if(e.kind==='kassa'){desc=(pl.dir==='out'?'Chiqim':'Kirim')+(pl.cat?' · '+esc(pl.cat):'')+(pl.note?' · '+esc(pl.note):'');amt=(pl.dir==='out'?-1:1)*(pl.amount||0);}
+  else if(e.kind==='pay'){var nm=pl.typ==='sup'?(supMap[pl.id]||'Ta‘minotchi'):(custMap[pl.id]||'Mijoz');desc=esc(nm);amt=pl.amount||0;}
+  else{desc=esc(e.kind);}
+  return {desc:desc,amt:amt};}
 function _opsBuild(){
   var old=document.getElementById('opsOv');if(old)old.remove();
   var sup=getSup(),supMap={};sup.forEach(function(s){supMap[s.id]=s.nom;});
   var cust=getCust(),custMap={};cust.forEach(function(c){custMap[c.id]=c.nom;});
   evAll(function(evs){
-    var ops=evs.filter(function(e){return ['sale','kirim','kassa','pay'].indexOf(e.kind)>=0 && e.payload;});
+    var _sk=_trashInfo(evs).skip;
+    var ops=evs.filter(function(e){return ['sale','kirim','kassa','pay'].indexOf(e.kind)>=0&&e.payload&&!_sk[e.id];});
     ops.sort(function(a,b){return b.ts-a.ts;});
     window._OPS=ops;
-    var rows=ops.map(function(e,i){
-      var pl=e.payload,desc='',amt=0;
-      if(e.kind==='sale'){desc=((pl.items?pl.items.length:0))+' tovar'+(pl.cust?' \u00b7 '+esc(pl.cust):'');amt=pl.total||0;}
-      else if(e.kind==='kirim'){var pr=findProd(pl.pid);desc=(pr?esc(pr.nom):esc(''+pl.pid))+' \u00b7 +'+grp(pl.qty);amt=pl.summa||0;}
-      else if(e.kind==='kassa'){desc=(pl.dir==='out'?'Chiqim':'Kirim')+(pl.cat?' \u00b7 '+esc(pl.cat):'')+(pl.note?' \u00b7 '+esc(pl.note):'');amt=(pl.dir==='out'?-1:1)*(pl.amount||0);}
-      else if(e.kind==='pay'){var nm=pl.typ==='sup'?(supMap[pl.id]||'Ta\u2018minotchi'):(custMap[pl.id]||'Mijoz');desc=esc(nm);amt=pl.amount||0;}
-      return '<div class="kop" onclick="opDetail('+i+')" style="cursor:pointer"><div class="ko-l"><div class="ko-c">'+_opIcon(e.kind,pl)+' '+_opLabel(e.kind)+'</div><div class="ko-s">'+_opWhen(e.ts)+' \u00b7 '+desc+'</div></div><div class="ko-a">'+grp(amt)+'</div></div>';
+    var rows=ops.map(function(e,i){var r=_opDesc(e,supMap,custMap);
+      return '<div class="kop" onclick="opDetail('+i+')" style="cursor:pointer"><div class="ko-l"><div class="ko-c">'+_opIcon(e.kind,e.payload)+' '+_opLabel(e.kind)+'</div><div class="ko-s">'+_opWhen(e.ts)+' · '+r.desc+'</div></div><div class="ko-a">'+grp(r.amt)+'</div></div>';
     }).join('');
-    if(!rows)rows='<div class="cart-empty" style="padding:30px">Amaliyot yo\u2018q.</div>';
+    if(!rows)rows='<div class="cart-empty" style="padding:30px">Amaliyot yo‘q.</div>';
     var d=document.createElement('div');d.id='opsOv';
     d.style.cssText='position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:220;display:flex';
     d.innerHTML='<div style="background:#fff;margin:auto;max-width:520px;width:100%;height:88vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden">'+
-      '<div style="padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px"><b style="font-size:16px;flex:1">🧾 Amaliyotlar</b><button onclick="closeOps()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 12px;font-size:15px">\u2715</button></div>'+
+      '<div style="padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px"><b style="font-size:16px;flex:1">🧾 Amaliyotlar</b><button onclick="_binBuild()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 10px;font-size:13px">🗑 Korzinka</button><button onclick="closeOps()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 12px;font-size:15px">✕</button></div>'+
       '<div id="opsList" style="flex:1;overflow:auto;padding:8px 12px">'+rows+'</div></div>';
     document.body.appendChild(d);
   });
@@ -2425,31 +2429,55 @@ function opDetail(i){
   var sup=getSup(),supMap={};sup.forEach(function(s){supMap[s.id]=s.nom;});
   var cust=getCust(),custMap={};cust.forEach(function(c){custMap[c.id]=c.nom;});
   if(e.kind==='sale'){
-    body='<div style="font-size:13px;color:#555;margin-bottom:8px">Sotuvchi: '+esc(pl.seller||'—')+(pl.cust?' \u00b7 Mijoz: '+esc(pl.cust):'')+'</div>';
-    body+=(pl.items||[]).map(function(it){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #eee"><span>'+esc(it.nom)+' \u00d7'+grp(it.qty)+'</span><b>'+grp((it.narx||0)*it.qty)+'</b></div>';}).join('');
+    body='<div style="font-size:13px;color:#555;margin-bottom:8px">Sotuvchi: '+esc(pl.seller||'—')+(pl.cust?' · Mijoz: '+esc(pl.cust):'')+'</div>';
+    body+=(pl.items||[]).map(function(it){return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #eee"><span>'+esc(it.nom)+' ×'+grp(it.qty)+'</span><b>'+grp((it.narx||0)*it.qty)+'</b></div>';}).join('');
     body+='<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:16px"><b>Jami</b><b>'+grp(pl.total||0)+'</b></div>';
-    body+='<div style="font-size:13px;color:#555;margin-top:4px">To\u2018lov usuli: '+esc(pl.pay||'—')+'</div>';
+    body+='<div style="font-size:13px;color:#555;margin-top:4px">To‘lov usuli: '+esc(pl.pay||'—')+'</div>';
   } else if(e.kind==='kirim'){var pr=findProd(pl.pid);
-    body='<div style="line-height:2">Tovar: <b>'+(pr?esc(pr.nom):esc(''+pl.pid))+'</b><br>Miqdor: <b>+'+grp(pl.qty)+'</b><br>Summa: <b>'+grp(pl.summa||0)+'</b><br>To\u2018langan: <b>'+grp(pl.paid||0)+'</b>'+(pl.supId&&supMap[pl.supId]?'<br>Ta\u2018minotchi: <b>'+esc(supMap[pl.supId])+'</b>':'')+'</div>';
+    body='<div style="line-height:2">Tovar: <b>'+(pr?esc(pr.nom):esc(''+pl.pid))+'</b><br>Miqdor: <b>+'+grp(pl.qty)+'</b><br>Summa: <b>'+grp(pl.summa||0)+'</b><br>To‘langan: <b>'+grp(pl.paid||0)+'</b>'+(pl.supId&&supMap[pl.supId]?'<br>Ta‘minotchi: <b>'+esc(supMap[pl.supId])+'</b>':'')+'</div>';
   } else if(e.kind==='kassa'){
-    body='<div style="line-height:2">Turi: <b>'+(pl.dir==='out'?'Chiqim (\u2212)':'Kirim (+)')+'</b><br>Miqdor: <b>'+grp(pl.amount||0)+'</b><br>Kategoriya: <b>'+esc(pl.cat||'—')+'</b>'+(pl.note?'<br>Izoh: '+esc(pl.note):'')+'</div>';
-  } else if(e.kind==='pay'){var nm=pl.typ==='sup'?(supMap[pl.id]||'Ta\u2018minotchi'):(custMap[pl.id]||'Mijoz');
+    body='<div style="line-height:2">Turi: <b>'+(pl.dir==='out'?'Chiqim (−)':'Kirim (+)')+'</b><br>Miqdor: <b>'+grp(pl.amount||0)+'</b><br>Kategoriya: <b>'+esc(pl.cat||'—')+'</b>'+(pl.note?'<br>Izoh: '+esc(pl.note):'')+'</div>';
+  } else if(e.kind==='pay'){var nm=pl.typ==='sup'?(supMap[pl.id]||'Ta‘minotchi'):(custMap[pl.id]||'Mijoz');
     body='<div style="line-height:2">Kimga/kimdan: <b>'+esc(nm)+'</b><br>Summa: <b>'+grp(pl.amount||0)+'</b></div>';
   }
   var d=document.createElement('div');d.id='opDetOv';
   d.style.cssText='position:fixed;inset:0;background:rgba(20,30,50,.55);z-index:230;display:flex;align-items:center;justify-content:center;padding:16px';
   d.innerHTML='<div style="background:#fff;max-width:440px;width:100%;border-radius:16px;overflow:hidden">'+
-    '<div style="padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">'+_opIcon(e.kind,pl)+' '+_opLabel(e.kind)+'</b><button onclick="var o=document.getElementById(\'opDetOv\');if(o)o.remove();" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 12px">\u2715</button></div>'+
+    '<div style="padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">'+_opIcon(e.kind,pl)+' '+_opLabel(e.kind)+'</b><button onclick="closeOpDet()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 12px">✕</button></div>'+
     '<div style="padding:16px"><div style="font-size:12px;color:#888;margin-bottom:12px">'+_opWhen(e.ts,1)+'</div>'+body+'</div>'+
-    '<div style="padding:12px 16px;border-top:1px solid #eee"><button onclick="var o=document.getElementById(\'opDetOv\');if(o)o.remove();" style="width:100%;padding:11px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;font-weight:700">Yopish</button></div></div>';
+    '<div style="padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px"><button onclick="opDelete('+i+')" style="flex:1;padding:11px;border:none;background:#e01438;color:#fff;border-radius:10px;font-weight:700">🗑 O‘chirish</button><button onclick="closeOpDet()" style="flex:1;padding:11px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;font-weight:700">Yopish</button></div></div>';
   document.body.appendChild(d);
 }
-function delKirim(i){var k=(window._KHIST||[])[i];if(!k)return;if(!confirm(k.nom+' \u00b7 +'+grp(k.qty)+' kirimini o\u2018chirasizmi?\nMiqdor va summa qaytariladi.'))return;commitEvent('kirim',{pid:k.pid,qty:-(+k.qty||0),summa:-(+k.summa||0),supId:k.supId,paid:0});if((+k.paid||0)>0){commitEvent('kassa',{dir:'in',acc:'naqd',amount:+k.paid,cat:'Xarid',note:'Kirim bekor'});if(k.supId)commitEvent('supadj',{id:k.supId,amount:+k.paid});}toast('Kirim o\u2018chirildi');renderKirimHist();if(typeof renderStats==='function')renderStats();if(typeof kSearch==='function')kSearch();}
+function opDelete(i){var e=(window._OPS||[])[i];if(!e)return;if(!confirm('Bu amaliyotni o‘chirasizmi?\nKorzinkaga tushadi, qaytarish mumkin.'))return;closeOpDet();commitEvent('trash',{ref:e.id});rebuildState(function(){_opsBuild();toast('🗑 Korzinkaga o‘tkazildi');});}
+function opRestore(i){var e=(window._BIN||[])[i];if(!e)return;commitEvent('untrash',{ref:e.id});rebuildState(function(){_binBuild();toast('♻️ Qaytarildi');});}
+function opPurge(i){var e=(window._BIN||[])[i];if(!e)return;if(!confirm('Butunlay o‘chirilsinmi? Bu qaytarib bo‘lmaydi.'))return;commitEvent('purge',{ref:e.id});rebuildState(function(){_binBuild();toast('Butunlay o‘chirildi');});}
+function _binBuild(){
+  var old=document.getElementById('opsOv');if(old)old.remove();
+  var sup=getSup(),supMap={};sup.forEach(function(s){supMap[s.id]=s.nom;});
+  var cust=getCust(),custMap={};cust.forEach(function(c){custMap[c.id]=c.nom;});
+  evAll(function(evs){
+    var bin=_trashInfo(evs).bin,byId={};evs.forEach(function(e){byId[e.id]=e;});
+    var items=[];for(var id in bin){if(byId[id])items.push(byId[id]);}
+    items.sort(function(a,b){return b.ts-a.ts;});
+    window._BIN=items;
+    var rows=items.map(function(e,i){var r=_opDesc(e,supMap,custMap);
+      return '<div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><b>'+_opIcon(e.kind,e.payload)+' '+_opLabel(e.kind)+'</b><div style="font-size:12px;color:#888">'+_opWhen(e.ts)+' · '+r.desc+'</div></div><b>'+grp(r.amt)+'</b></div><div style="display:flex;gap:8px;margin-top:8px"><button onclick="opRestore('+i+')" style="flex:1;padding:8px;border:none;background:#1a7f37;color:#fff;border-radius:8px;font-weight:700">♻️ Qaytarish</button><button onclick="opPurge('+i+')" style="flex:1;padding:8px;border:1px solid #e01438;background:#fff;color:#e01438;border-radius:8px;font-weight:700">✕ Butunlay</button></div></div>';
+    }).join('');
+    if(!rows)rows='<div class="cart-empty" style="padding:30px">Korzinka bo‘sh.</div>';
+    var d=document.createElement('div');d.id='opsOv';
+    d.style.cssText='position:fixed;inset:0;background:rgba(20,30,50,.5);z-index:220;display:flex';
+    d.innerHTML='<div style="background:#fff;margin:auto;max-width:520px;width:100%;height:88vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden">'+
+      '<div style="padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px"><button onclick="_opsBuild()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 10px">←</button><b style="font-size:16px;flex:1">🗑 Korzinka</b><button onclick="closeOps()" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 12px">✕</button></div>'+
+      '<div style="flex:1;overflow:auto;padding:12px">'+rows+'</div></div>';
+    document.body.appendChild(d);
+  });
+}
+function delKirim(i){var k=(window._KHIST||[])[i];if(!k||!k.id)return;if(!confirm(k.nom+' \u00b7 +'+grp(k.qty)+' kirimini o\u2018chirasizmi?\nKorzinkaga tushadi, qaytarish mumkin.'))return;commitEvent('trash',{ref:k.id});rebuildState(function(){renderKirimHist();if(typeof renderStats==='function')renderStats();if(typeof kSearch==='function')kSearch();toast('\ud83d\uddd1 Korzinkaga o\u2018tkazildi');});}
 function renderKirimHist(){
   var el=document.getElementById('kirimHist');if(!el)return;
   var sup=getSup(),supMap={};sup.forEach(function(s){supMap[s.id]=s.nom;});
   evAll(function(evs){
-    var ks=[];evs.forEach(function(e){if(e.kind==='kirim'&&e.payload){var pl=e.payload,pr=findProd(pl.pid);ks.push({ts:e.ts,nom:pr?pr.nom:pl.pid,qty:pl.qty,summa:pl.summa||0,sup:supMap[pl.supId]||'',pid:pl.pid,supId:pl.supId,paid:pl.paid||0});}});
+    var _sk=_trashInfo(evs).skip;var ks=[];evs.forEach(function(e){if(e.kind==='kirim'&&e.payload&&!_sk[e.id]){var pl=e.payload,pr=findProd(pl.pid);ks.push({ts:e.ts,nom:pr?pr.nom:pl.pid,qty:pl.qty,summa:pl.summa||0,sup:supMap[pl.supId]||'',pid:pl.pid,supId:pl.supId,paid:pl.paid||0,id:e.id});}});
     if(!ks.length){el.innerHTML='<div class="cart-empty">Kirim tarixi yo\u2018q. Yuqorida tovar qidirib kirim qo\u2019shing.</div>';return;}
     ks.sort(function(a,b){return b.ts-a.ts;});window._KHIST=[];
     var groups={},order=[];ks.forEach(function(k){var d=new Date(k.ts),day=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);if(!groups[day]){groups[day]=[];order.push(day);}groups[day].push(k);});
@@ -3630,6 +3658,7 @@ function commitEvent(kind,payload,ts){
   EVIDS[ev.id]=1; var _ct=Number(ev.ts)||0; if(_ct>_maxEvTs)_maxEvTs=_ct; applyEvent(ev); evPut(ev,function(){}); cloudPushSoon(); return ev;
 }
 
+function _trashInfo(evs){var trash={},purge={};evs.forEach(function(e){var pl=e.payload||{},r=pl.ref;if(!r)return;if(e.kind==='trash')trash[r]=1;else if(e.kind==='untrash')delete trash[r];else if(e.kind==='purge'){purge[r]=1;delete trash[r];}});var skip={};for(var a in trash)skip[a]=1;for(var b in purge)skip[b]=1;return {skip:skip,bin:trash};}
 function rebuildState(cb){
   var bq=baseQMap();
   PRODUCTS.forEach(function(p){if(bq[p.id]!=null)p.qoldiq=bq[p.id];});
@@ -3640,7 +3669,7 @@ function rebuildState(cb){
   evAll(function(evs){
     EVIDS={};_maxEvTs=0;evs.forEach(function(e){EVIDS[e.id]=1;var _t=Number(e.ts)||0;if(_t>_maxEvTs)_maxEvTs=_t;});
     evs.sort(function(a,b){return (a.ts||0)-(b.ts||0);});
-    function replay(){evs.forEach(applyEvent);if(typeof refresh==='function')refresh();_afterState();cb&&cb();}
+    function replay(){var _sk=_trashInfo(evs).skip;evs.forEach(function(_e){if(_e.kind==='trash'||_e.kind==='untrash'||_e.kind==='purge')return;if(_sk[_e.id])return;applyEvent(_e);});if(typeof refresh==='function')refresh();_afterState();cb&&cb();}
     if(db){var tx=db.transaction('sales','readwrite');tx.objectStore('sales').clear();tx.oncomplete=replay;tx.onerror=replay;}else replay();
   });
 }
