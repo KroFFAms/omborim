@@ -620,6 +620,11 @@ var DEPLOY = {
     <button class="btn btn-ghost sm" onclick="document.getElementById('restoreFile').click()">📂 Fayldan tiklash</button>
     <input id="restoreFile" type="file" accept="application/json,.json" style="display:none" onchange="restoreFile(this)">
   </div>
+  <div class="bhead">🧨 Noldan boshlash</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <button class="btn btn-ghost sm" style="color:#a32d2d;border-color:#f0c4be" onclick="factoryReset()">🧨 Hamma ma’lumotni tozalash</button>
+  </div>
+  <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">Barcha savdo, kirim, kassa, qarz va hisobotlar butunlay o‘chiriladi — faqat shu do‘kon uchun. Avval zaxira olinadi.</div>
   <div class="bhead">📦 Arxiv (o’tgan yillar)</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
     <button class="btn btn-ghost sm" onclick="arxivExport()">📦 Yilni arxivga chiqarish</button>
@@ -709,7 +714,7 @@ var DEPLOY = {
 
 <script>
 /* ================= KROFF Savdo — Tovar bazasi (1-bosqich) ================= */
-var DBNAME='kroff_savdo', STORE='tovarlar', db=null;
+var DBNAME='omb_savdo', STORE='tovarlar', db=null;
 var PRODUCTS=[];          // barcha tovarlar (xotirada)
 var BCX={};               // shtrix-kod -> mahsulot (skaner uchun)
 var RENDER_LIMIT=60;
@@ -958,12 +963,12 @@ function switchView(v,btn){
   window.scrollTo(0,0);
 }
 /* sellers */
-function getSellers(){try{var s=JSON.parse(localStorage.getItem('kroff_sellers'));if(s&&s.length)return s;}catch(e){}return [];}
+function getSellers(){try{var s=JSON.parse(localStorage.getItem('omb_sellers'));if(s&&s.length)return s;}catch(e){}return [];}
 function renderSellers(){var sel=document.getElementById('seller');if(!sel)return;var cur=sel.value,list=getSellers();sel.innerHTML=list.map(function(n){return '<option>'+esc(n)+'</option>';}).join('');
-  var my=null;try{my=localStorage.getItem('kroff_myseller');}catch(e){}
+  var my=null;try{my=localStorage.getItem('omb_myseller');}catch(e){}
   if(my&&list.indexOf(my)>=0)sel.value=my; else if(cur&&list.indexOf(cur)>=0)sel.value=cur;
-  if(!sel._bound){sel.addEventListener('change',function(){try{localStorage.setItem('kroff_myseller',sel.value);}catch(e){}});sel._bound=1;}}
-function editSellers(){var v=prompt('Sotuvchilar (vergul bilan):',getSellers().join(', '));if(v==null)return;var list=v.split(',').map(function(s){return s.trim();}).filter(Boolean);if(!list.length)return;try{localStorage.setItem('kroff_sellers',JSON.stringify(list));}catch(e){}renderSellers();toast('\u2705 Sotuvchilar saqlandi');}
+  if(!sel._bound){sel.addEventListener('change',function(){try{localStorage.setItem('omb_myseller',sel.value);}catch(e){}});sel._bound=1;}}
+function editSellers(){var v=prompt('Sotuvchilar (vergul bilan):',getSellers().join(', '));if(v==null)return;var list=v.split(',').map(function(s){return s.trim();}).filter(Boolean);if(!list.length)return;try{localStorage.setItem('omb_sellers',JSON.stringify(list));}catch(e){}renderSellers();toast('\u2705 Sotuvchilar saqlandi');}
 function openSetup(){
   var ov=document.getElementById('setupOv');if(ov)ov.remove();
   var shop=(window.SHOP&&SHOP.name)||'';var sellers=getSellers().join(', ');
@@ -981,24 +986,24 @@ function openSetup(){
     '</div>';
   document.body.appendChild(d);
 }
-function _bonusRate(){try{var v=parseFloat(localStorage.getItem('kroff_bonus_rate'));return (isNaN(v)?1:v);}catch(e){return 1;}}
+function _bonusRate(){try{var v=parseFloat(localStorage.getItem('omb_bonus_rate'));return (isNaN(v)?1:v);}catch(e){return 1;}}
 function setupFinish(){
   var sh=((document.getElementById('suShop')||{}).value||'').trim();
-  var se=(document.getElementById('suSellers')||{}).value||'';var _bn=parseFloat((document.getElementById('suBonus')||{}).value);if(!isNaN(_bn)&&_bn>=0){try{localStorage.setItem('kroff_bonus_rate',_bn);}catch(e){}}
-  try{if(sh){localStorage.setItem('kroff_shop',sh);if(window.SHOP)SHOP.name=sh;}}catch(e){}
+  var se=(document.getElementById('suSellers')||{}).value||'';var _bn=parseFloat((document.getElementById('suBonus')||{}).value);if(!isNaN(_bn)&&_bn>=0){try{localStorage.setItem('omb_bonus_rate',_bn);}catch(e){}}
+  try{if(sh){localStorage.setItem('omb_shop',sh);if(window.SHOP)SHOP.name=sh;}}catch(e){}
   var list=se.split(',').map(function(s){return s.trim();}).filter(Boolean);
-  if(list.length){try{localStorage.setItem('kroff_sellers',JSON.stringify(list));}catch(e){}}
-  try{localStorage.setItem('kroff_setup_done','1');}catch(e){}
+  if(list.length){try{localStorage.setItem('omb_sellers',JSON.stringify(list));}catch(e){}}
+  try{localStorage.setItem('omb_setup_done','1');}catch(e){}
   var ov=document.getElementById('setupOv');if(ov)ov.remove();
   if(typeof renderSellers==='function')renderSellers();
   if(typeof refresh==='function')refresh();
   toast('\u2705 Tayyor! Sotuvni boshlashingiz mumkin');
 }
-function setupSkip(){try{localStorage.setItem('kroff_setup_done','1');}catch(e){}var ov=document.getElementById('setupOv');if(ov)ov.remove();}
+function setupSkip(){try{localStorage.setItem('omb_setup_done','1');}catch(e){}var ov=document.getElementById('setupOv');if(ov)ov.remove();}
 function setupWizardMaybe(){
-  try{if(localStorage.getItem('kroff_setup_done'))return;}catch(e){return;}
+  try{if(localStorage.getItem('omb_setup_done'))return;}catch(e){return;}
   var empty=true;try{empty=(Object.keys(EVIDS||{}).length===0);}catch(e){}
-  if(empty){openSetup();}else{try{localStorage.setItem('kroff_setup_done','1');}catch(e){}}
+  if(empty){openSetup();}else{try{localStorage.setItem('omb_setup_done','1');}catch(e){}}
 }
 /* cart */
 var CART=[], PAY='naqd', _svbc=null, _svt;
@@ -1056,9 +1061,9 @@ function dostToggle(){DOST.on=!DOST.on;
 function _dostNames(){var dl=document.getElementById('dostKimL');if(!dl)return;var n={};
   try{(typeof XODIM!=='undefined'?XODIM:[]).forEach(function(x){if(x.nom)n[x.nom]=1;});}catch(e){}
   try{getSellers().forEach(function(x){n[x]=1;});}catch(e){}
-  try{(JSON.parse(localStorage.getItem('kroff_dostkim'))||[]).forEach(function(x){n[x]=1;});}catch(e){}
+  try{(JSON.parse(localStorage.getItem('omb_dostkim'))||[]).forEach(function(x){n[x]=1;});}catch(e){}
   dl.innerHTML=Object.keys(n).map(function(x){return '<option value="'+esc(x)+'">';}).join('');}
-function _dostRemember(x){if(!x)return;try{var a=JSON.parse(localStorage.getItem('kroff_dostkim'))||[];if(a.indexOf(x)<0){a.unshift(x);localStorage.setItem('kroff_dostkim',JSON.stringify(a.slice(0,25)));}}catch(e){}}
+function _dostRemember(x){if(!x)return;try{var a=JSON.parse(localStorage.getItem('omb_dostkim'))||[];if(a.indexOf(x)<0){a.unshift(x);localStorage.setItem('omb_dostkim',JSON.stringify(a.slice(0,25)));}}catch(e){}}
 function dostReset(){DOST.on=false;var b=document.getElementById('dostBtn');if(b)b.className='optbtn';
   var bx=document.getElementById('dostBox');if(bx)bx.style.display='none';
   ['dostHaq','dostKim','dostTolov','dostManzil'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
@@ -1085,7 +1090,7 @@ function setBolPay(id,btn){PAY='qarz';BOL=id;var ps=document.querySelectorAll('.
 function setPay(m,btn){PAY=m;BOL='';var ps=document.querySelectorAll('.pays .pay');for(var i=0;i<ps.length;i++)ps[i].classList.remove('active');btn.classList.add('active');var cr=document.getElementById('custRow');if(cr){cr.style.display='flex';}var bR=document.getElementById('bolimRow');if(bR)bR.style.display='none';if(m==='qarz'&&typeof _fillBolimSel==='function')_fillBolimSel();var chR=document.getElementById('cashRow');if(chR)chR.style.display='none';var pR=document.getElementById('paidRow');if(pR)pR.style.display='none';var cl=document.getElementById('changeLbl');if(cl)cl.textContent=(m==='qarz')?'Qarzga:':'Qaytim:';var mR=document.getElementById('muddatRow');if(mR)mR.style.display=(m==='qarz')?'flex':'none';calcChange();}
 /* ===== Chek chiqarish (58mm) ===== */
 var SHOP={
-  name:(function(){try{return localStorage.getItem('kroff_shop')||DEPLOY.SHOP_NAME;}catch(e){return DEPLOY.SHOP_NAME;}})(),
+  name:(function(){try{return localStorage.getItem('omb_shop')||DEPLOY.SHOP_NAME;}catch(e){return DEPLOY.SHOP_NAME;}})(),
   social:[]
 };
 function _money(n){return grp(Math.round(Math.abs(n)));}
@@ -2003,7 +2008,7 @@ function renderH_dashboard(el,all){
   if(_lowN||_outN){h+='<div onclick="gotoQoldiq()" style="cursor:pointer;background:#FFF4E5;border:1px solid #F0C98B;color:#8a4b00;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:13.5px">\u26a0\ufe0f Kam qolgan: '+_lowN+' ta \u00b7 Tugagan: '+_outN+' ta \u2014 Qoldiqni ko\u2018rish \u203a</div>';}
   {var _td=0,_tc=0;getCust().forEach(function(cx){if((cx.debt||0)>0){_td+=cx.debt;_tc++;}});
   if(_td>0)h+='<div onclick="gotoQarzdor()" style="cursor:pointer;background:#EEF4FB;border:1px solid #B9D3EC;color:#1F4E79;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:13.5px">\ud83d\udcb3 Qarzdorlar qarzi: '+grp(_td)+' \u00b7 '+_tc+' mijoz \u2014 ko\u2019rish \u203a</div>';}
-  {try{var _lb=+localStorage.getItem('kroff_lastbk')||0;var _bd=_lb?Math.floor((Date.now()-_lb)/86400000):999;
+  {try{var _lb=+localStorage.getItem('omb_lastbk')||0;var _bd=_lb?Math.floor((Date.now()-_lb)/86400000):999;
   if(_bd>=7)h+='<div onclick="doBackup()" style="cursor:pointer;background:#FDECEC;border:1px solid #E0A9A9;color:#a32d2d;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:13.5px">\ud83d\udcbe '+(_lb?('Oxirgi zaxira '+_bd+' kun oldin'):'Hali zaxira olinmagan')+' \u2014 bosib zaxira oling \u203a</div>';}catch(e){}}
   {var _od=0,_odC=0;try{var _dm={};all.forEach(function(x){if(x.pay==='qarz'&&x.due&&x.customer){if(!_dm[x.customer]||x.due<_dm[x.customer])_dm[x.customer]=x.due;}});var _tod=dayStr(new Date());getCust().forEach(function(cx){if((cx.debt||0)>0&&_dm[cx.nom]&&_dm[cx.nom]<_tod){_od+=cx.debt;_odC++;}});}catch(e){}
   if(_od>0)h+='<div onclick="gotoQarzdor()" style="cursor:pointer;background:#FDECEA;border:1px solid #E8A9A0;color:#a32d2d;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-weight:700;font-size:13.5px">\u26a0\ufe0f Muddati o\u2019tgan qarz: '+grp(_od)+' \u00b7 '+_odC+' mijoz \u2014 ko\u2019rish \u203a</div>';}
@@ -2162,8 +2167,8 @@ function _smenaCalc(all){
   });
   return {sel:sel,bp:bp,total:total,profit:profit,units:units,nSale:nSale,nRet:nRet,retSum:retSum};
 }
-function getKassa(){return lsGet('kroff_kassa',{});}
-function setKassaField(f,v){var k=getKassa(),d=dayStr(new Date());if(!k[d])k[d]={open:0,payout:0};k[d][f]=Math.round(_pf(v)||0);lsSet('kroff_kassa',k);renderHisobot();}
+function getKassa(){return lsGet('omb_kassa',{});}
+function setKassaField(f,v){var k=getKassa(),d=dayStr(new Date());if(!k[d])k[d]={open:0,payout:0};k[d][f]=Math.round(_pf(v)||0);lsSet('omb_kassa',k);renderHisobot();}
 function renderH_smena(el,all){
   var c=_smenaCalc(all), h='';
   if(!c.sel.length){h+='<div class="bstat"><div class="bv">0</div><div class="bl">'+_periodLabel()+' \u2014 savdo yo\u2018q</div></div>';}
@@ -2503,8 +2508,8 @@ function svSearch(){
       '<span class="svr-r">'+grp(p.sotuv)+' \u00b7 <i>'+(no?'yo\u2018q':grp(p.qoldiq)+' '+(p.olchov||'dona'))+'</i></span></button>';});
   el.innerHTML=h;
 }
-function getDrafts(){try{var d=JSON.parse(localStorage.getItem('kroff_drafts'));return (d&&d.length)?d:[];}catch(e){return [];}}
-function setDrafts(d){try{localStorage.setItem('kroff_drafts',JSON.stringify(d));}catch(e){}}
+function getDrafts(){try{var d=JSON.parse(localStorage.getItem('omb_drafts'));return (d&&d.length)?d:[];}catch(e){return [];}}
+function setDrafts(d){try{localStorage.setItem('omb_drafts',JSON.stringify(d));}catch(e){}}
 function _draftCust(){var cs=document.getElementById('custSel');var v=cs?cs.value:'';if(!v){var si=document.getElementById('custSearch');v=si?(si.value||'').trim():'';}return v;}
 function _draftCopy(arr){return (arr||[]).map(function(c){return {id:c.id,nom:c.nom,narx:c.narx,xarid:c.xarid,qty:c.qty,max:c.max,olchov:c.olchov};});}
 function holdSale(type){
@@ -2633,13 +2638,13 @@ function initSotuv(){
 /* ================= KIRIM / TA'MINOTCHILAR / MIJOZLAR (3-bosqich) ================= */
 function lsGet(k,def){try{var v=JSON.parse(localStorage.getItem(k));return v||def;}catch(e){return def;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function getBolim(){var b=lsGet('kroff_bolim',null);if(!b)return [];return b;}
-function setBolim(b){lsSet('kroff_bolim',b);}
+function getBolim(){var b=lsGet('omb_bolim',null);if(!b)return [];return b;}
+function setBolim(b){lsSet('omb_bolim',b);}
 /* eski standart bo'limlarni (Tunukafon/Birja/Travertin) bir marta olib tashlash — qarzi bo'lsa tegilmaydi */
-(function(){try{if(localStorage.getItem('omb_bolclean'))return;var b=lsGet('kroff_bolim',null);if(b&&b.length){var rm={tunukafon:1,birja:1,travertin:1};var n=b.filter(function(x){return !(rm[x.id]&&!(x.debt>0));});if(n.length!==b.length)lsSet('kroff_bolim',n);}localStorage.setItem('omb_bolclean','1');}catch(e){}})();
+(function(){try{if(localStorage.getItem('omb_bolclean'))return;var b=lsGet('omb_bolim',null);if(b&&b.length){var rm={tunukafon:1,birja:1,travertin:1};var n=b.filter(function(x){return !(rm[x.id]&&!(x.debt>0));});if(n.length!==b.length)lsSet('omb_bolim',n);}localStorage.setItem('omb_bolclean','1');}catch(e){}})();
 function bolimNom(id){var b=getBolim();for(var i=0;i<b.length;i++)if(b[i].id===id)return b[i].nom;return id;}
-function getSup(){return lsGet('kroff_sup',[]);}function setSup(v){lsSet('kroff_sup',v);}
-function getCust(){return lsGet('kroff_cust',[]);}function setCust(v){lsSet('kroff_cust',v);}
+function getSup(){return lsGet('omb_sup',[]);}function setSup(v){lsSet('omb_sup',v);}
+function getCust(){return lsGet('omb_cust',[]);}function setCust(v){lsSet('omb_cust',v);}
 function uid(pre){return pre+Date.now()+Math.floor(Math.random()*1000);}
 
 /* ---- TA'MINOTCHILAR + KIRIM ---- */
@@ -3432,7 +3437,7 @@ function delProdImg(id){
   toast('Rasm olib tashlandi');
   if(typeof boshSearch==='function')boshSearch();
 }
-function _catCfg(){var c={};try{c=JSON.parse(localStorage.getItem('kroff_catcfg'))||{};}catch(e){}return c;}
+function _catCfg(){var c={};try{c=JSON.parse(localStorage.getItem('omb_catcfg'))||{};}catch(e){}return c;}
 function CATPASS(){var c=_catCfg();return (c.pass||DEPLOY.CATALOG_PASS||'');}
 function catCfg(){var c=_catCfg();
   var ph=prompt('\ud83d\udcde Katalog uchun telefon (masalan +998901234567):',c.phone||'');if(ph===null)return;
@@ -3440,7 +3445,7 @@ function catCfg(){var c=_catCfg();
   var nm=prompt('\ud83c\udfea Do\u2019kon nomi:',c.name||'KROFF');if(nm===null)return;
   var pw=prompt('\ud83d\udd11 Katalog paroli (onlayn buyurtma va yuklash uchun):',c.pass||'');if(pw===null)return;
   var cfg={phone:ph.trim(),tg:(tg.trim().replace(/^@/,'')),name:(nm.trim()||'KROFF'),pass:(pw.trim())};
-  localStorage.setItem('kroff_catcfg',JSON.stringify(cfg));
+  localStorage.setItem('omb_catcfg',JSON.stringify(cfg));
   toast('\u2705 Saqlandi. Endi "Katalogga yuklash" bosing.');}
 function catalogPush(){
   var arr=[];PRODUCTS.forEach(function(p){if(p.arxiv)return;arr.push({nom:p.nom,narx:p.sotuv,qoldiq:p.qoldiq,barcode:p.barcode||'',artikul:p.artikul||'',img:p.img||''});});
@@ -3498,17 +3503,55 @@ function updatePersistInfo(persisted){
     }else{el.innerHTML='Doimiy saqlash: '+(persisted?'yoqilgan \u2713':'\u2014');}
   }catch(e){}
 }
+
+/* ===== Butunlay tozalash (noldan boshlash) ===== */
+function factoryReset(){
+  if(!confirm('\u26a0\ufe0f DIQQAT!\n\nBarcha savdo, kirim, kassa, qarz va hisobotlar butunlay o\u2019chiriladi.\nBu amalni QAYTARIB BO\u2019LMAYDI.\n\nDavom etamizmi?'))return;
+  var w=prompt('Tasdiqlash uchun katta harflar bilan TOZALASH deb yozing:','');
+  if((w||'').trim().toUpperCase()!=='TOZALASH'){toast('Bekor qilindi');return;}
+  var zero=confirm('Tovar qoldiqlari ham NOLGA tushirilsinmi?\n\nOK \u2014 hamma tovar qoldig\u2018i 0 bo\u2018ladi (keyin Kirim orqali kiritasiz).\nBekor \u2014 boshlang\u2018ich qoldiqlar saqlanadi.');
+  toast('\u23f3 Zaxira olinmoqda...');
+  try{doBackup();}catch(e){}
+  setTimeout(function(){_frRun(zero);},1500);
+}
+function _frRun(zero){
+  toast('\u23f3 Bulut tozalanmoqda...');
+  fetch(SB_URL+'/rest/v1/'+SB_EV+'?ts=gte.0',{method:'DELETE',headers:_sbHdr({'Prefer':'return=minimal'})})
+  .then(function(r){return r.ok?null:r.text().then(function(t){throw new Error('HTTP '+r.status+' '+t.slice(0,80));});})
+  .catch(function(e){alert('Bulut tozalanmadi: '+e.message+'\n\nSupabase panelida qo\u2019lda tozalashingiz kerak bo\u2018ladi.');})
+  .then(function(){_frLocal(zero);});
+}
+function _frLocal(zero){
+  /* localStorage */
+  try{var del=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&(k.indexOf('omb_')===0||k.indexOf('kroff_')===0))del.push(k);}
+    del.forEach(function(k){localStorage.removeItem(k);});
+    if(zero)localStorage.setItem('omb_zerobase','1');
+  }catch(e){}
+  /* IndexedDB */
+  function fin(){toast('\u2705 Tozalandi. Dastur qayta yuklanmoqda...');setTimeout(function(){location.reload();},900);}
+  try{
+    if(!db){fin();return;}
+    var names=['events','sales'],doneN=0;
+    names.forEach(function(nm){
+      try{var tx=db.transaction(nm,'readwrite');tx.objectStore(nm).clear();
+        tx.oncomplete=function(){if(++doneN===names.length)fin();};
+        tx.onerror=function(){if(++doneN===names.length)fin();};
+      }catch(e){if(++doneN===names.length)fin();}
+    });
+  }catch(e){fin();}
+}
+
 function doBackup(){
   salesLoad(function(sales){ evAll(function(events){
-    var ls={}; try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i); if(k&&k.indexOf('kroff')===0)ls[k]=localStorage.getItem(k);}}catch(e){}
+    var ls={}; try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i); if(k&&(k.indexOf('omb')===0||k.indexOf('kroff')===0))ls[k]=localStorage.getItem(k);}}catch(e){}
     var data={app:'kroff-savdo',v:1,ts:new Date().toISOString(),events:events,sales:sales,ls:ls};
     try{
       var blob=new Blob([JSON.stringify(data)],{type:'application/json'});
       var url=URL.createObjectURL(blob),a=document.createElement('a'),d=new Date();
-      a.href=url;a.download='kroff_backup_'+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+'_'+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2)+'.json';
+      a.href=url;a.download='omb_backup_'+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+'_'+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2)+'.json';
       document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000);
       toast('\u2705 Zaxira yuklandi ('+events.length+' amal)');
-      try{localStorage.setItem('kroff_lastbk',String(Date.now()));}catch(e){}
+      try{localStorage.setItem('omb_lastbk',String(Date.now()));}catch(e){}
     }catch(e){toast('Zaxira xato: '+e.message);}
   }); });
 }
@@ -3995,7 +4038,7 @@ var SB_KEY=DEPLOY.SB_KEY;
 var SB_EV=DEPLOY.SB_EV;
 var EVIDS={}, BASEQ=null, _syncOn=true, _syncing=false, _pushT=null, _maxEvTs=0;
 function _sbHdr(x){var o={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};if(x){for(var k in x)o[k]=x[k];}return o;}
-function baseQMap(){if(BASEQ)return BASEQ;BASEQ={};loadBase().forEach(function(p){BASEQ[p.id]=p.qoldiq;});return BASEQ;}
+function baseQMap(){if(BASEQ)return BASEQ;BASEQ={};var _z=false;try{_z=!!localStorage.getItem('omb_zerobase');}catch(e){}loadBase().forEach(function(p){BASEQ[p.id]=_z?0:p.qoldiq;});return BASEQ;}
 function evPut(ev,done){if(!db){done&&done();return;}var tx=db.transaction('events','readwrite');tx.objectStore('events').put(ev);tx.oncomplete=function(){done&&done();};tx.onerror=function(){done&&done();};}
 function evAll(cb){if(!db){cb([]);return;}var out=[],tx=db.transaction('events','readonly'),cur=tx.objectStore('events').openCursor();cur.onsuccess=function(e){var c=e.target.result;if(c){out.push(c.value);c.continue();}else cb(out);};cur.onerror=function(){cb([]);};}
 function _curSeller(){var s=document.getElementById('seller');return (s&&s.value)||'';}
@@ -4024,7 +4067,7 @@ function applyEvent(ev){
     var cu=getCust();(pl.list||[]).forEach(function(it){var cf=0;for(var ci=0;ci<cu.length;ci++){if(cu[ci].nom===it.nom){cu[ci].debt=it.debt||0;if(it.phone)cu[ci].phone=it.phone;cf=1;break;}}if(!cf)cu.push({id:uid('cust'),nom:it.nom,phone:it.phone||'',debt:it.debt||0});});setCust(cu);
   }else if(ev.kind==='supdel'||ev.kind==='custdel'){
     var typ=(ev.kind==='supdel')?'sup':'cust';var d2=((typ==='sup')?getSup():getCust()).filter(function(x){return x.id!==pl.id;});if(typ==='sup')setSup(d2);else setCust(d2);
-  }else if(ev.kind==='adjust'){var pa=findProd(pl.pid);if(pa)pa.qoldiq=pl.to;}else if(ev.kind==='config'){if(pl.pins){try{localStorage.setItem('kroff_pins',JSON.stringify(pl.pins));}catch(e){}}}else if(ev.kind==='prodadd'){if(!findProd(pl.id)){var np={id:pl.id,nom:pl.nom,artikul:pl.artikul||'',barcode:pl.barcode||'',olchov:pl.olchov||'dona',kategoriya:pl.kategoriya||'',brend:'',sotuv:pl.sotuv||0,xarid:pl.xarid||0,qoldiq:pl.qoldiq||0,marja:0,arxiv:false,erkin:(pl.erkin?true:false)};np._s=(np.nom+' '+np.brend+' '+np.kategoriya).toLowerCase();PRODUCTS.push(np);if(np.barcode){if(!BCX[np.barcode])BCX[np.barcode]=[];BCX[np.barcode].push(np);}}}else if(ev.kind==='reprice'){var rp=findProd(pl.pid);if(rp){if(pl.sotuv!=null)rp.sotuv=pl.sotuv;if(pl.xarid!=null)rp.xarid=pl.xarid;}}else if(ev.kind==='writeoff'){var wp=findProd(pl.pid);if(wp)wp.qoldiq=Math.round((wp.qoldiq-pl.qty)*1000)/1000;}else if(ev.kind==='optom'){var oo=findProd(pl.pid);if(oo&&pl.optom!=null)oo.optom=pl.optom;}else if(ev.kind==='prodsup'){var psx=findProd(pl.pid);if(psx)psx.supId=(pl.supId||'');}else if(ev.kind==='prodimg'){var pix=findProd(pl.pid);if(pix)pix.img=(pl.url||'');}else if(ev.kind==='prodedit'){var pe=findProd(pl.pid);if(pe){if(pl.nom!=null)pe.nom=pl.nom;if(pl.kategoriya!=null)pe.kategoriya=pl.kategoriya;if(pl.olchov!=null)pe.olchov=pl.olchov;if(pl.barcode!=null&&pl.barcode!=='')pe.barcode=pl.barcode;if(pl.erkin!=null)pe.erkin=!!pl.erkin;pe._s=((pe.nom||'')+' '+(pe.brend||'')+' '+(pe.kategoriya||'')).toLowerCase();}}else if(ev.kind==='draft'){var _drL=getDrafts(),_drI=-1;for(var _drX=0;_drX<_drL.length;_drX++)if(_drL[_drX].id===pl.id){_drI=_drX;break;}var _drO={id:pl.id,ts:pl.ts||ev.ts,label:pl.label,cust:pl.cust,pay:pl.pay,cart:pl.cart||[],seller:ev.seller||'',type:(pl.type||'kechik')};if(_drI>=0)_drL[_drI]=_drO;else _drL.unshift(_drO);setDrafts(_drL);}else if(ev.kind==='draftdel'){var _drZ=getDrafts();for(var _drY=0;_drY<_drZ.length;_drY++)if(_drZ[_drY].id===pl.id){_drZ.splice(_drY,1);break;}setDrafts(_drZ);}
+  }else if(ev.kind==='adjust'){var pa=findProd(pl.pid);if(pa)pa.qoldiq=pl.to;}else if(ev.kind==='config'){if(pl.pins){try{localStorage.setItem('omb_pins',JSON.stringify(pl.pins));}catch(e){}}}else if(ev.kind==='prodadd'){if(!findProd(pl.id)){var np={id:pl.id,nom:pl.nom,artikul:pl.artikul||'',barcode:pl.barcode||'',olchov:pl.olchov||'dona',kategoriya:pl.kategoriya||'',brend:'',sotuv:pl.sotuv||0,xarid:pl.xarid||0,qoldiq:pl.qoldiq||0,marja:0,arxiv:false,erkin:(pl.erkin?true:false)};np._s=(np.nom+' '+np.brend+' '+np.kategoriya).toLowerCase();PRODUCTS.push(np);if(np.barcode){if(!BCX[np.barcode])BCX[np.barcode]=[];BCX[np.barcode].push(np);}}}else if(ev.kind==='reprice'){var rp=findProd(pl.pid);if(rp){if(pl.sotuv!=null)rp.sotuv=pl.sotuv;if(pl.xarid!=null)rp.xarid=pl.xarid;}}else if(ev.kind==='writeoff'){var wp=findProd(pl.pid);if(wp)wp.qoldiq=Math.round((wp.qoldiq-pl.qty)*1000)/1000;}else if(ev.kind==='optom'){var oo=findProd(pl.pid);if(oo&&pl.optom!=null)oo.optom=pl.optom;}else if(ev.kind==='prodsup'){var psx=findProd(pl.pid);if(psx)psx.supId=(pl.supId||'');}else if(ev.kind==='prodimg'){var pix=findProd(pl.pid);if(pix)pix.img=(pl.url||'');}else if(ev.kind==='prodedit'){var pe=findProd(pl.pid);if(pe){if(pl.nom!=null)pe.nom=pl.nom;if(pl.kategoriya!=null)pe.kategoriya=pl.kategoriya;if(pl.olchov!=null)pe.olchov=pl.olchov;if(pl.barcode!=null&&pl.barcode!=='')pe.barcode=pl.barcode;if(pl.erkin!=null)pe.erkin=!!pl.erkin;pe._s=((pe.nom||'')+' '+(pe.brend||'')+' '+(pe.kategoriya||'')).toLowerCase();}}else if(ev.kind==='draft'){var _drL=getDrafts(),_drI=-1;for(var _drX=0;_drX<_drL.length;_drX++)if(_drL[_drX].id===pl.id){_drI=_drX;break;}var _drO={id:pl.id,ts:pl.ts||ev.ts,label:pl.label,cust:pl.cust,pay:pl.pay,cart:pl.cart||[],seller:ev.seller||'',type:(pl.type||'kechik')};if(_drI>=0)_drL[_drI]=_drO;else _drL.unshift(_drO);setDrafts(_drL);}else if(ev.kind==='draftdel'){var _drZ=getDrafts();for(var _drY=0;_drY<_drZ.length;_drY++)if(_drZ[_drY].id===pl.id){_drZ.splice(_drY,1);break;}setDrafts(_drZ);}
   else if(ev.kind==='aritem'){if(pl.del){for(var ai=0;ai<ARITEMS.length;ai++){if(ARITEMS[ai].id===pl.id){ARITEMS.splice(ai,1);break;}}}else{var af=0;for(var ai2=0;ai2<ARITEMS.length;ai2++){if(ARITEMS[ai2].id===pl.id){ARITEMS[ai2]={id:pl.id,nom:pl.nom,kun:pl.kun,soat:pl.soat};af=1;break;}}if(!af)ARITEMS.push({id:pl.id,nom:pl.nom,kun:pl.kun,soat:pl.soat});}}
   else if(ev.kind==='arout'){ARENTALS[pl.rid]={rid:pl.rid,itemId:pl.itemId,nom:pl.nom,mijoz:pl.mijoz,kun:pl.kun,soat:pl.soat,tsOut:pl.ts,zalog:pl.zalog||0,closed:false};}
   else if(ev.kind==='arin'){if(ARENTALS[pl.rid]){ARENTALS[pl.rid].closed=true;ARENTALS[pl.rid].tsIn=pl.ts;ARENTALS[pl.rid].haqi=pl.haqi;ARENTALS[pl.rid].method=pl.method;}}
@@ -4061,7 +4104,7 @@ function _afterState(){
 }
 var _bkChecked=false;
 function _bkReminder(){if(_bkChecked)return;_bkChecked=true;
-  try{var last=+localStorage.getItem('kroff_lastbk')||0;var days=(Date.now()-last)/86400000;
+  try{var last=+localStorage.getItem('omb_lastbk')||0;var days=(Date.now()-last)/86400000;
     if(days>=7){setTimeout(function(){toast('\ud83d\udcbe Zaxira olishni unutmang \u2014 Boshqaruv \u2192 Zaxira olish');},4500);}
   }catch(e){}
 }
@@ -4178,12 +4221,12 @@ function scheduleCatPublish(){if(!_syncOn)return;clearTimeout(_catPubT);var sinc
 function publishCatalog(manual){
   var prods=catProducts();
   if(!prods.length){if(manual)toast('\u26d4 Tovarlar ro\u2018yxati bo\u2018sh \u2014 katalog o\u2018zgartirilmadi');return;}
-  var _lastN=+localStorage.getItem('kroff_catlastn')||0;
+  var _lastN=+localStorage.getItem('omb_catlastn')||0;
   if(_lastN>20&&prods.length<_lastN*0.5){
     if(!manual){console.warn('publishCatalog to\u2018xtatildi: '+_lastN+' \u2192 '+prods.length);return;}
     if(!confirm('\u26a0\ufe0f Diqqat!\n\nOldin katalogda '+_lastN+' ta tovar bor edi, hozir '+prods.length+' ta.\n\nSinxronizatsiya tugamagan bo\u2018lishi mumkin. Baribir chiqarilsinmi?'))return;
   }
-  try{localStorage.setItem('kroff_catlastn',String(prods.length));}catch(e){}
+  try{localStorage.setItem('omb_catlastn',String(prods.length));}catch(e){}
   if(manual)toast('\u2601\ufe0f Katalogga chiqarilyapti...');
   fetch(SB_URL+'/rest/v1/catalog?select=data&id=eq.1',{headers:_sbHdr()})
     .then(function(r){return r.ok?r.json():[];})
@@ -4205,15 +4248,15 @@ function manualSync(){menuOpen(false);sbStatus('\u2601\ufe0f Yangilanyapti...');
 var _pin='',_role=null,_perms={},_authState='';
 var PERM_LIST=[['hisobot','Hisobot/Vazvrat'],['kirim','Kirim'],['mijoz','Mijozlar'],['kassa','Kassa'],['sanoq','Sanoq'],['tahlil','Tahlil'],['discount','Chegirma'],['prodadd','Tovar qo\u2019shish'],['proddel','Tovar o\u2019chirish'],['vazvrat','Qaytarish']];
 function can(k){return _role==='admin'||(_perms&&_perms[k]===true);}
-function getPins(){try{var q=JSON.parse(localStorage.getItem('kroff_pins'));if(q&&q.admin)return q;}catch(e){}return {admin:DEPLOY.ADMIN_PIN};}
-function getDevId(){var d=null;try{d=localStorage.getItem('kroff_devid');}catch(e){}if(!d){d='dev'+Date.now()+Math.floor(Math.random()*100000);try{localStorage.setItem('kroff_devid',d);}catch(e){}}return d;}
+function getPins(){try{var q=JSON.parse(localStorage.getItem('omb_pins'));if(q&&q.admin)return q;}catch(e){}return {admin:DEPLOY.ADMIN_PIN};}
+function getDevId(){var d=null;try{d=localStorage.getItem('omb_devid');}catch(e){}if(!d){d='dev'+Date.now()+Math.floor(Math.random()*100000);try{localStorage.setItem('omb_devid',d);}catch(e){}}return d;}
 function openLock(){var l=document.getElementById('lockScreen');if(l)l.classList.add('show');}
 function hideLock(){var l=document.getElementById('lockScreen');if(l)l.classList.remove('show');}
 function lockShow(sec){['reg','pend','deny','pin'].forEach(function(s){var el=document.getElementById('lock_'+s);if(el)el.style.display=(s===sec)?'':'none';});if(sec==='pin'){renderPinPad();_pin='';renderPinDots();var s=document.getElementById('lockSub');if(s)s.textContent='Admin paroli';}}
 function renderPinPad(){var pad=document.getElementById('lockPad');if(!pad)return;var keys=['1','2','3','4','5','6','7','8','9','\u232b','0','\u2713'];pad.innerHTML=keys.map(function(k){return '<button class="pinkey'+(k==='\u2713'?' ok':(k==='\u232b'?' del':''))+'" onclick="pinPress(\''+k+'\')">'+k+'</button>';}).join('');}
 function renderPinDots(){var d=document.getElementById('lockDots');if(d)d.textContent=_pin?_pin.replace(/./g,'\u25cf'):'\u00b7\u00b7\u00b7\u00b7';}
 function pinPress(k){if(k==='\u232b'){_pin=_pin.slice(0,-1);}else if(k==='\u2713'){pinCheck();return;}else{if(_pin.length<10)_pin+=k;}renderPinDots();}
-function pinCheck(){var q=getPins();if(_pin===String(q.admin)){try{localStorage.setItem('kroff_authmode','pin');}catch(e){}setRole('admin',{});}else{var s=document.getElementById('lockSub');if(s)s.textContent='\u274c Noto\u2018g\u2018ri parol';_pin='';renderPinDots();if(navigator.vibrate)navigator.vibrate(180);}}
+function pinCheck(){var q=getPins();if(_pin===String(q.admin)){try{localStorage.setItem('omb_authmode','pin');}catch(e){}setRole('admin',{});}else{var s=document.getElementById('lockSub');if(s)s.textContent='\u274c Noto\u2018g\u2018ri parol';_pin='';renderPinDots();if(navigator.vibrate)navigator.vibrate(180);}}
 function devRegister(){var name=(document.getElementById('regName').value||'').trim(),phone=(document.getElementById('regPhone').value||'').trim();if(!name){toast('Ismingizni kiriting');return;}if(!phone){toast('Telefon raqamini kiriting');return;}commitEvent('devreq',{devid:getDevId(),name:name,phone:phone});lockShow('pend');cloudSync();}
 function recheckAuth(){toast('Tekshirilyapti\u2026');cloudPull(function(){resolveAuth(routeAuth);});}
 function resolveAuth(cb){var my=getDevId();evAll(function(evs){var req=null,auth=null,del=null;evs.forEach(function(e){if(!e.payload||e.payload.devid!==my)return;if(e.kind==='devreq'){if(!req||e.ts>req.ts)req={ts:e.ts,phone:e.payload.phone,name:e.payload.name};}else if(e.kind==='devauth'){if(!auth||e.ts>auth.ts)auth={ts:e.ts,role:e.payload.role,approved:e.payload.approved,perms:e.payload.perms||{}};}else if(e.kind==='devdel'){if(!del||e.ts>del.ts)del={ts:e.ts};}});
@@ -4224,10 +4267,10 @@ function resolveAuth(cb){var my=getDevId();evAll(function(evs){var req=null,auth
   cb({state:'new'});});}
 function routeAuth(st){var locked=document.getElementById('lockScreen').classList.contains('show');
   if(st.state==='approved'){_perms=st.perms||{};if(_role&&!locked){_role=st.role;applyRole();}else{setRole(st.role,st.perms);}_authState='approved';return;}
-  if((st.state==='denied'||st.state==='new')&&_role&&!locked){_role=null;try{localStorage.removeItem('kroff_authmode');}catch(e){}applyRole();}
+  if((st.state==='denied'||st.state==='new')&&_role&&!locked){_role=null;try{localStorage.removeItem('omb_authmode');}catch(e){}applyRole();}
   _authState=st.state;openLock();lockShow(st.state==='pending'?'pend':(st.state==='denied'?'deny':'reg'));}
 function setRole(r,perms){_role=r;_perms=perms||{};hideLock();applyRole();if(r==='sotuvchi')switchView('sotuv');else switchView('hisobot');}
-function lockApp(){_role=null;try{localStorage.removeItem('kroff_authmode');}catch(e){}menuOpen(false);openLock();resolveAuth(routeAuth);}
+function lockApp(){_role=null;try{localStorage.removeItem('omb_authmode');}catch(e){}menuOpen(false);openLock();resolveAuth(routeAuth);}
 function applyRole(){var admin=(_role==='admin'),perms=_perms||{};var items=document.querySelectorAll('#menuDrop .menu-item');
   for(var i=0;i<items.length;i++){var b=items[i];if(b.getAttribute('data-admin')!=='1')continue;var v=b.getAttribute('data-v');var allow=admin||(v&&v!=='devices'&&perms[v]===true);b.style.display=allow?'':'none';}
   var nav=document.querySelectorAll('.bottomnav .nav');
@@ -4304,7 +4347,7 @@ function _ihToday(){return dayStr(new Date());}
 function xodimSeed(loud){
   var n=0;
   XODIM_DEF.forEach(function(d){var id=_xslug(d[0]);if(findXodim(id))return;commitEvent('xodim',{id:id,nom:d[0],bolim:d[1],fiks:0,custId:''});n++;});
-  try{localStorage.setItem('kroff_xodim_seed','1');}catch(e){}
+  try{localStorage.setItem('omb_xodim_seed','1');}catch(e){}
   if(loud)toast(n?('\u2705 '+n+' xodim qo\u2018shildi'):'Hammasi allaqachon bor');
   return n;
 }
@@ -4419,7 +4462,7 @@ function _ihAgg(ym){
 }
 function renderIshHaqi(){
   var el=document.getElementById('ihBody');if(!el)return;
-  if(!XODIM.length){var s='';try{s=localStorage.getItem('kroff_xodim_seed');}catch(e){}if(s!=='1')xodimSeed(false);}
+  if(!XODIM.length){var s='';try{s=localStorage.getItem('omb_xodim_seed');}catch(e){}if(s!=='1')xodimSeed(false);}
   var mi=document.getElementById('ihMonth');if(mi)mi.value=IHYM;
   var agg=_ihAgg(IHYM),tN=0,tP=0,tNach=0,tPaid=0;
   var h='';
@@ -4625,10 +4668,10 @@ openDB(function(){
   rebuildState(function(){
     initSotuv(); refresh();
     if(typeof setupWizardMaybe==='function')setupWizardMaybe();
-    var _am=null;try{_am=localStorage.getItem('kroff_authmode');}catch(e){}
+    var _am=null;try{_am=localStorage.getItem('omb_authmode');}catch(e){}
     if(_am==='pin'){_role='admin';applyRole();switchView('hisobot');}else{resolveAuth(routeAuth);}
-    if(navigator.onLine!==false) cloudSync(function(){try{if(localStorage.getItem('kroff_authmode')!=='pin')resolveAuth(routeAuth);}catch(e){}});
-    setInterval(function(){ if(navigator.onLine!==false) cloudPull(function(){try{if(localStorage.getItem('kroff_authmode')!=='pin')resolveAuth(routeAuth);}catch(e){}}); }, 15000);
+    if(navigator.onLine!==false) cloudSync(function(){try{if(localStorage.getItem('omb_authmode')!=='pin')resolveAuth(routeAuth);}catch(e){}});
+    setInterval(function(){ if(navigator.onLine!==false) cloudPull(function(){try{if(localStorage.getItem('omb_authmode')!=='pin')resolveAuth(routeAuth);}catch(e){}}); }, 15000);
   });
 });
 </script>
