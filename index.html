@@ -5774,5 +5774,367 @@ try{
 }catch(e){}
 </script>
 <div class="onl-ov" id="onlOv"><div class="onl-box"><div class="onl-head"><span>🛍️ Onlayn buyurtmalar</span><button onclick="closeOnl()">✕</button></div><div class="onl-body" id="onlBody"></div></div></div>
+
+<!-- ===== CHAP YON MENYU (Moliyaviy Baza uslubi) — faqat ko'rinish, funksiyalarga tegilmagan ===== -->
+<style id="sideNavCss">
+:root{--sbw:214px}
+#sideNav{position:fixed;left:0;top:0;bottom:0;width:var(--sbw);background:#fff;border-right:1px solid #dde2e8;
+  display:none;flex-direction:column;z-index:60;overflow-y:auto;overscroll-behavior:contain}
+#sideNav .sb-head{background:#1F4E79;color:#fff;padding:14px 16px 13px;position:sticky;top:0;z-index:2}
+#sideNav .sb-h1{font-size:15px;font-weight:700;letter-spacing:-.01em}
+#sideNav .sb-sub{font-size:11px;color:#a9bdd9;margin-top:3px;font-weight:600}
+#sideNav .sb-grp{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#98a2b3;font-weight:700;padding:15px 16px 5px}
+#sideNav .sb-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;
+  border-left:3px solid transparent;padding:9px 15px 9px 13px;font-size:13px;color:#4a5568;cursor:pointer;
+  font-weight:600;line-height:1.3;font-family:inherit}
+#sideNav .sb-item:hover{background:#f4f6f9}
+#sideNav .sb-item.active{border-left-color:#1F4E79;background:#EEF4FB;color:#1F4E79;font-weight:700}
+#sideNav .sb-i{font-size:15px;width:20px;text-align:center;flex:0 0 20px}
+#sideNav .sb-foot{margin-top:auto;padding:11px 15px;border-top:1px solid #eef1f4;font-size:11px;color:#8a94a6;font-weight:600}
+#sideNav .sb-sync{display:block;width:100%;text-align:left;background:#f4f6f9;border:1px solid #e3e8ee;border-radius:8px;
+  padding:7px 10px;font-size:11.5px;font-weight:700;color:#42505f;cursor:pointer;margin-bottom:7px;font-family:inherit}
+
+#sideNav .sb-cav{margin-left:auto;font-size:10px;color:#9aa5b4;transition:transform .15s}
+#sideNav .sb-item.open .sb-cav{transform:rotate(90deg)}
+#sideNav .sb-rep{display:none;background:#fafbfc;border-top:1px solid #eef1f4;border-bottom:1px solid #eef1f4;padding:2px 0 6px}
+#sideNav .sb-rep.on{display:block}
+#sideNav .sb-rgrp{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#a3acb9;font-weight:700;padding:9px 16px 3px}
+#sideNav .sb-ritem{display:block;width:100%;text-align:left;background:none;border:none;border-left:3px solid transparent;
+  padding:6px 12px 6px 26px;font-size:12px;color:#5a6676;cursor:pointer;font-weight:600;line-height:1.3;font-family:inherit}
+#sideNav .sb-ritem:hover{background:#eef1f5}
+#sideNav .sb-ritem.active{border-left-color:#C65911;background:#fdf1e7;color:#9a4510;font-weight:700}
+
+/* takroriy yo'llar yopildi: ☁️ belgisi bor, menyudagi "Yangilash" keraksiz */
+#menuDrop .menu-item[onclick*="manualSync"]{display:none!important}
+/* pastda "Menyu" tugmasi bor — sarlavhadagi ☰ keraksiz */
+.menu-btn{display:none!important}
+
+#sideNav .sb-find{width:calc(100% - 24px);margin:6px 12px 4px;padding:6px 9px;border:1px solid #dde2e8;
+  border-radius:7px;font-size:12px;font-family:inherit;outline:none;background:#fff;color:#42505f}
+#sideNav .sb-find:focus{border-color:#1F4E79}
+
+@media(min-width:900px){
+  /* tepadagi blok ingichka: nom chapda turibdi, takrorlanmasin */
+  header .eyebrow, header h1{display:none}
+  header{padding-top:12px;padding-bottom:12px}
+  header .stats{margin-top:0}
+  header .stat{min-width:120px;padding:7px 12px}
+  header .stat .v{font-size:15px}
+  /* hisobot asboblari bitta qatorga */
+  .hrow1{display:flex!important;flex-wrap:wrap;align-items:center;gap:8px}
+  .hrow1>#hRangeRow{flex:0 1 auto;width:auto;padding:0}
+  .hrow1>#hperRow{margin-top:0!important}
+  #sideNav{display:flex}
+  .wrap{padding-left:var(--sbw);padding-bottom:26px}
+  .bottomnav{display:none!important}
+  .menu-btn{display:none!important}
+  .menu-drop,.menu-back{display:none!important}
+  #htabSel{display:none!important}
+  header{padding-left:24px;padding-right:24px}
+  .toolbar{padding-left:24px;padding-right:24px}
+}
+</style>
+
+<nav id="sideNav" aria-label="Asosiy menyu">
+  <div class="sb-head">
+    <div class="sb-h1" id="sbTitle">Mening omborim</div>
+    <div class="sb-sub" id="sbSub">—</div>
+  </div>
+  <div id="sbBody"></div>
+  <div class="sb-foot">
+    <button class="sb-sync" id="sbSync" type="button">☁️ Yangilash</button>
+    <span id="sbVer">—</span>
+  </div>
+</nav>
+
+<script>
+/* Chap menyu — #menuDrop ning oynasi (mirror).
+   Hech bir mavjud funksiya o'zgartirilmagan: har bir tugma o'zining
+   asl menyu bandini .click() qiladi, ya'ni xatti-harakat bir xil.
+   Huquqlar (data-admin) ham asl banddan ko'chiriladi. */
+(function(){
+  var GROUPS=[
+    ['Asosiy',      ['tovarlar','sotuv','kirim']],
+    ['Savdo va pul',['hisobot','kassa','mijoz','ishhaqi','arenda']],
+    ['Ombor',       ['fn:openOps','fn:openRetSup','sanoq']],
+    ['Tizim',       ['devices','boshqaruv','fn:editPins','fn:lockApp']]
+  ];
+
+  function keyOf(b){
+    var v=b.getAttribute('data-v');
+    if(v) return v;
+    var oc=b.getAttribute('onclick')||'';
+    var m=oc.match(/([A-Za-z_$][\w$]*)\s*\(/);
+    return m?('fn:'+m[1]):'';
+  }
+  function labelOf(b){
+    var t=b.textContent||'';
+    return t.replace(/^[\s ]*[^\wЀ-ӿ(]+/,'').trim();
+  }
+  function iconOf(b){
+    var i=b.querySelector('.mi-i');
+    return i?i.textContent.trim():'•';
+  }
+
+  var host=document.getElementById('sbBody');
+  var drop=document.getElementById('menuDrop');
+  if(!host||!drop) return;
+
+  var src=drop.querySelectorAll('.menu-item');
+  var byKey={}, order=[];
+  for(var i=0;i<src.length;i++){
+    var k=keyOf(src[i]);
+    if(!k||byKey[k])continue;
+    byKey[k]=src[i]; order.push(k);
+  }
+
+  var made={};
+  function addItem(k){
+    var orig=byKey[k]; if(!orig||made[k])return;
+    made[k]=1;
+    var b=document.createElement('button');
+    b.type='button';
+    b.className='sb-item';
+    b.setAttribute('data-k',k);
+    var v=orig.getAttribute('data-v'); if(v)b.setAttribute('data-v',v);
+    b.innerHTML='<span class="sb-i"></span><span class="sb-t"></span>';
+    b.querySelector('.sb-i').textContent=iconOf(orig);
+    b.querySelector('.sb-t').textContent=labelOf(orig);
+    b.onclick=function(){ orig.click(); };
+    host.appendChild(b);
+  }
+  function addGroup(title,keys){
+    var any=false;
+    for(var i=0;i<keys.length;i++) if(byKey[keys[i]]) any=true;
+    if(!any)return;
+    var h=document.createElement('div'); h.className='sb-grp'; h.textContent=title;
+    host.appendChild(h);
+    for(var j=0;j<keys.length;j++) addItem(keys[j]);
+  }
+
+  for(var g=0;g<GROUPS.length;g++) addGroup(GROUPS[g][0],GROUPS[g][1]);
+  /* ro'yxatda kutilmagan yangi band bo'lsa — yo'qolib qolmasin */
+  made['fn:manualSync']=1; /* pastdagi tugma bor */
+  var qolgan=[]; for(var q=0;q<order.length;q++) if(!made[order[q]]) qolgan.push(order[q]);
+  if(qolgan.length) addGroup('Boshqa',qolgan);
+
+  /* --- holatni asl menyudan ko'chirish: faollik + huquqlar --- */
+  function sync(){
+    var items=host.querySelectorAll('.sb-item');
+    for(var i=0;i<items.length;i++){
+      var b=items[i], o=byKey[b.getAttribute('data-k')];
+      if(!o)continue;
+      b.style.display=(o.style.display==='none')?'none':'';
+      if(o.classList.contains('active'))b.classList.add('active');
+      else b.classList.remove('active');
+    }
+    /* guruh sarlavhasi: ostida ko'rinadigan band qolmasa — yashiramiz */
+    var kids=host.children, head=null, seen=false;
+    for(var k=0;k<kids.length;k++){
+      var el=kids[k];
+      if(el.className==='sb-grp'){
+        if(head)head.style.display=seen?'':'none';
+        head=el; seen=false;
+      }else if(el.style.display!=='none'){ seen=true; }
+    }
+    if(head)head.style.display=seen?'':'none';
+
+    var rb=document.getElementById('roleBadge');
+    var sub=document.getElementById('sbSub');
+    if(rb&&sub)sub.textContent=(rb.textContent||'—').trim();
+    var chip=document.getElementById('syncChip');
+    var sb=document.getElementById('sbSync');
+    if(chip&&sb)sb.textContent=(chip.textContent||'☁️').trim();
+    var head2=drop.querySelector('.menu-head b');
+    var ver=document.getElementById('sbVer');
+    if(head2&&ver)ver.textContent=head2.textContent.trim();
+  }
+
+  var sbs=document.getElementById('sbSync');
+  if(sbs)sbs.onclick=function(){ var c=document.getElementById('syncChip'); if(c)c.click(); };
+
+  if(window.MutationObserver){
+    new MutationObserver(sync).observe(drop,{attributes:true,subtree:true,attributeFilter:['style','class']});
+    var chip=document.getElementById('syncChip');
+    if(chip)new MutationObserver(sync).observe(chip,{childList:true,characterData:true,subtree:true});
+  }
+  setInterval(sync,1200);
+  sync();
+
+  /* ===== Dashboarddagi ikkita qarz chizig'ini bitta qatorga birlashtiramiz ===== */
+  function qarzMerge(){
+    var v=document.getElementById('view-hisobot');
+    if(!v||!v.classList.contains('active'))return;
+    var all=v.querySelectorAll('[onclick*="gotoQarzdor"]'), strips=[];
+    for(var i=0;i<all.length;i++){
+      var t=all[i].textContent||'';
+      if(/Qarzdorlar qarzi|Muddati o/i.test(t))strips.push(all[i]);
+    }
+    if(strips.length<2)return;
+    var a=strips[0];
+    if(a.parentNode&&a.parentNode.getAttribute&&a.parentNode.getAttribute('data-qmerge'))return;
+    var box=document.createElement('div');
+    box.setAttribute('data-qmerge','1');
+    box.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:stretch';
+    a.parentNode.insertBefore(box,a);
+    for(var j=0;j<strips.length;j++){
+      strips[j].style.flex='1 1 240px';
+      strips[j].style.marginBottom='0';
+      box.appendChild(strips[j]);
+    }
+    box.style.marginBottom='8px';
+  }
+  setInterval(qarzMerge,900);
+
+  /* ===== QULAYLIK: qidiruv, oxirgi hisobot, ingichka asboblar, boshlang'ich sahifa ===== */
+  var LASTKEY='omb_last_hisobot';
+  function lsGet(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+  /* hisobot asboblarini bitta qatorga yig'amiz */
+  function hrow(){
+    var hr=document.getElementById('hRangeRow');
+    if(hr&&hr.parentNode&&hr.parentNode.className.indexOf('hrow1')<0)
+      hr.parentNode.className+=' hrow1';
+  }
+
+  /* "Orqaga" tugmasi keng ekranda keraksiz — chapda joy ko'rinib turibdi */
+  function hideBack(){
+    if(window.innerWidth<900)return;
+    var t=document.getElementById('dashTop'); if(!t)return;
+    var bs=t.getElementsByTagName('button');
+    for(var i=0;i<bs.length;i++){
+      if((bs[i].textContent||'').indexOf('Orqaga')>=0)bs[i].style.display='none';
+    }
+  }
+  setInterval(function(){hrow();hideBack();},900);
+
+  /* keng ekranda Dashboard bilan ochilsin */
+  (function(){
+    if(window.innerWidth<900)return;
+    var n=0;
+    var tm=setInterval(function(){
+      if(++n>150){clearInterval(tm);return;}
+      /* qulf ekrani yoki sozlash oynasi ochiq bo'lsa — kutamiz */
+      var lk=document.querySelector('.lockscr.show');
+      if(lk)return;
+      if(typeof _role==='undefined'||_role===null)return;
+      var ov=document.querySelectorAll('[id$="Ov"]');
+      for(var i=0;i<ov.length;i++){
+        var st=getComputedStyle(ov[i]);
+        if(st.display!=='none'&&st.visibility!=='hidden'&&ov[i].offsetHeight>0)return;
+      }
+      var hi=host.querySelector('.sb-item[data-v="hisobot"]');
+      var tv=document.getElementById('view-tovarlar');
+      if(!hi||hi.style.display==='none')  {clearInterval(tm);return;}
+      if(!tv||!tv.classList.contains('active')){clearInterval(tm);return;}
+      clearInterval(tm);
+      hi.click();
+      var last=lsGet(LASTKEY)||'dashboard';
+      if(typeof window.setHTab==='function')window.setHTab(last);
+    },800);
+  })();
+
+  /* ===== HISOBOT RO'YXATI — chap menyuga ===== */
+  (function(){
+    var sel=document.getElementById('htabSel');
+    var hostItem=host.querySelector('.sb-item[data-v="hisobot"]');
+    if(!sel||!hostItem)return;
+
+    var box=document.createElement('div');
+    box.className='sb-rep'; box.id='sbRep';
+    hostItem.parentNode.insertBefore(box,hostItem.nextSibling);
+
+    function build(){
+      box.innerHTML='';
+      var f=document.createElement('input');
+      f.type='text'; f.className='sb-find'; f.placeholder='Hisobot qidirish…';
+      f.oninput=function(){
+        var q=(this.value||'').toLowerCase().trim();
+        var bs=box.querySelectorAll('.sb-ritem'), any={};
+        for(var i=0;i<bs.length;i++){
+          var hit=!q||(bs[i].textContent||'').toLowerCase().indexOf(q)>=0;
+          bs[i].style.display=hit?'':'none';
+        }
+        var kids=box.children, head=null, seen=false;
+        for(var k=0;k<kids.length;k++){
+          var el=kids[k];
+          if(el.className==='sb-rgrp'){ if(head)head.style.display=seen?'':'none'; head=el; seen=false; }
+          else if(el.className.indexOf('sb-ritem')>=0&&el.style.display!=='none'){ seen=true; }
+        }
+        if(head)head.style.display=seen?'':'none';
+      };
+      f.onclick=function(e){e.stopPropagation();};
+      box.appendChild(f);
+      var kids=sel.children;
+      for(var i=0;i<kids.length;i++){
+        var n=kids[i];
+        if(n.tagName==='OPTGROUP'){
+          var h=document.createElement('div');
+          h.className='sb-rgrp'; h.textContent=n.label||'';
+          box.appendChild(h);
+          var os=n.children;
+          for(var j=0;j<os.length;j++) addOpt(os[j]);
+        }else if(n.tagName==='OPTION'){
+          addOpt(n);
+        }
+      }
+    }
+    function addOpt(o){
+      var b=document.createElement('button');
+      b.type='button'; b.className='sb-ritem';
+      b.setAttribute('data-r',o.value);
+      b.textContent=(o.textContent||'').trim();
+      b.onclick=function(){
+        if(typeof window.setHTab==='function'){ window.setHTab(o.value); }
+        else { sel.value=o.value; if(typeof window.setHTabSel==='function')window.setHTabSel(o.value); }
+        lsSet(LASTKEY,o.value);
+        repSync();
+      };
+      box.appendChild(b);
+    }
+
+    /* "Hisobot" ustiga bosilganda ro'yxat ochiladi/yopiladi */
+    var OPEN=false;
+    var cav=document.createElement('span');
+    cav.className='sb-cav'; cav.textContent='\u25B8';
+    hostItem.appendChild(cav);
+    var origMenu=byKey['hisobot'];
+    hostItem.onclick=function(){
+      var vv=document.getElementById('view-hisobot');
+      var wasActive=!!(vv&&vv.classList.contains('active'));
+      if(origMenu)origMenu.click();
+      OPEN = wasActive ? !OPEN : true;
+      repSync();
+    };
+
+    function repSync(){
+      var v=document.getElementById('view-hisobot');
+      var act=!!(v&&v.classList.contains('active'));
+      if(!act)OPEN=false;
+      if(OPEN)hostItem.classList.add('open'); else hostItem.classList.remove('open');
+      if(OPEN)box.classList.add('on'); else box.classList.remove('on');
+      if(!OPEN)return;
+      if(box.children.length===0)build();
+      var cur=sel.value;
+      var bs=box.querySelectorAll('.sb-ritem');
+      for(var i=0;i<bs.length;i++){
+        if(bs[i].getAttribute('data-r')===cur)bs[i].classList.add('active');
+        else bs[i].classList.remove('active');
+      }
+    }
+
+    build();
+    if(window.MutationObserver){
+      var v=document.getElementById('view-hisobot');
+      if(v)new MutationObserver(repSync).observe(v,{attributes:true,attributeFilter:['class']});
+      new MutationObserver(function(){ build(); repSync(); }).observe(sel,{childList:true,subtree:true});
+    }
+    setInterval(repSync,700);
+    repSync();
+  })();
+})();
+</script>
+
 </body>
 </html>
