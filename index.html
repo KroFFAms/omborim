@@ -1329,7 +1329,7 @@ function card(p,idx){
     '</div>'+
     '<div class="right">'+
       '<div class="price">'+grp(p.sotuv)+'</div>'+
-      '<div class="sub">xarid '+grp(p.xarid)+' · '+marja+'</div>'+
+      '<div class="sub">'+((_role==='admin')?('xarid '+grp(p.xarid)+' · '+marja):(p.minn>0?('eng past '+grp(p.minn)):''))+'</div>'+
       '<div class="qty '+qcls+'"><i class="qdot"></i>'+qtxt+'</div>'+
       '<button class="lblbtn" onclick="event.stopPropagation();printLabelIdx('+(idx==null?-1:idx)+')">\ud83c\udff7\ufe0f Yorliq</button>'+
     '</div>'+
@@ -1486,7 +1486,14 @@ function addToCart(id){var p=findProd(id);if(!p){toast('Topilmadi (id): '+id);re
     }else addQ=1;
   }
   var c=null;for(var i=0;i<CART.length;i++)if(CART[i].id===id){c=CART[i];break;}
-  var _want=(c?c.qty:0)+addQ;if(!_stockGuard(p,_want))return;var px=(OPTOM&&p.optom>0)?p.optom:p.sotuv;if(p.erkin){var _raw=prompt('Narx (dona uchun) \u2014 '+p.nom,px?String(px):'');if(_raw===null)return;var _ep=_pf(_raw);if(_ep>0)px=Math.round(_ep);}
+  var _want=(c?c.qty:0)+addQ;if(!_stockGuard(p,_want))return;var px=(OPTOM&&p.optom>0)?p.optom:p.sotuv;if(p.erkin){var _mn=_minN(p);
+    while(true){
+      var _raw=prompt('Narx (dona uchun) \u2014 '+p.nom+(_mn?('\nEng past narx: '+grp(_mn)):''),px?String(px):'');
+      if(_raw===null)return;
+      var _ep=_pf(_raw);
+      if(_ep>0){ if(_mn&&_ep<_mn){alert('\u26d4 Eng past sotuv narxi: '+grp(_mn)+' so\u2018m');continue;} px=Math.round(_ep); }
+      break;
+    }}
   if(c)c.qty+=addQ;else CART.push({id:id,nom:p.nom,narx:px,xarid:p.xarid||0,qty:addQ,max:p.qoldiq,olchov:p.olchov});
   if(qEl)qEl.value='';
   document.getElementById('sq').value='';document.getElementById('sv-results').innerHTML='';var _qb2=document.getElementById('quickBar');if(_qb2&&SVPHASE!=='pay')_qb2.style.display='';renderCart();}
@@ -1494,11 +1501,23 @@ function cartQty(id,d){for(var i=0;i<CART.length;i++)if(CART[i].id===id){if(d>0)
 function cartSetQty(id,val){var v=parseFloat((''+val).replace(',','.'));for(var i=0;i<CART.length;i++)if(CART[i].id===id){if(isNaN(v)||v<=0){CART.splice(i,1);}else{var _p=findProd(id);if(_p&&!_stockGuard(_p,v)){renderCart();return;}CART[i].qty=v;}break;}renderCart();}
 function cartDel(id){for(var i=0;i<CART.length;i++)if(CART[i].id===id){CART.splice(i,1);break;}renderCart();}
 function cartSum(){var s=0;CART.forEach(function(c){s+=c.narx*c.qty;});return s;}
-function cartPrice(id){for(var i=0;i<CART.length;i++){if(CART[i].id===id){var v=_pf(prompt('Yangi narx (dona uchun):',CART[i].narx));if(!v||v<=0)return;CART[i].narx=Math.round(v);renderCart();break;}}}
+function cartPrice(id){for(var i=0;i<CART.length;i++){if(CART[i].id===id){
+  var _mn=_minNid(id);
+  var v=_pf(prompt('Yangi narx (dona uchun):'+(_mn?('\nEng past narx: '+grp(_mn)):''),CART[i].narx));
+  if(!v||v<=0)return;
+  if(_mn&&v<_mn){toast('\u26d4 Eng past sotuv narxi: '+grp(_mn));return;}
+  CART[i].narx=Math.round(v);renderCart();break;}}}
 var DISC=0;
+/* --- ENG PAST SOTUV NARXI --- */
+function _minN(p){return (p&&p.minn>0)?p.minn:0;}
+function _minNid(id){return _minN(findProd(id));}
+function _minFloor(){var f=0;for(var i=0;i<CART.length;i++){var m=_minNid(CART[i].id);if(m>0)f+=m*(CART[i].qty||0);}return Math.round(f);}
 function calcDisc(){if(!can('discount'))return 0;var el=document.getElementById('discInp');var raw=el?(''+el.value).trim():'';var sub=cartSum();var d=0;
   if(/%\s*$/.test(raw)){var p=parseFloat(raw.replace(/[^0-9.]/g,''))||0;d=Math.round(sub*p/100);}else{d=_pf(raw)||0;}
-  if(d<0)d=0;if(d>sub)d=sub;DISC=d;return d;}
+  if(d<0)d=0;if(d>sub)d=sub;
+  var _fl=_minFloor();
+  if(_fl>0&&(sub-d)<_fl){d=Math.max(0,sub-_fl);if(el&&!calcDisc._warn){calcDisc._warn=1;setTimeout(function(){calcDisc._warn=0;},1500);toast('\u26d4 Chegirma eng past narxgacha cheklandi');}}
+  DISC=d;return d;}
 var ROUND=0;
 function cycleRound(){ROUND=ROUND===0?1000:(ROUND===1000?500:0);var b=document.getElementById('roundBtn');if(b)b.textContent='\u2248 '+(ROUND?grp(ROUND):'Yo\u2018q');cartRecalc();}
 function roundedTotal(){var t=cartSum()-calcDisc();if(ROUND>0)t=Math.round(t/ROUND)*ROUND;t+=_dostHaq();return Math.max(0,t);}
@@ -1841,6 +1860,8 @@ function completeSale(){_RPT_CACHE=null;_QK_IDS=null;
     var _qoldi=Math.round(total-_SPpaid-_bolSum-_qrz);
     if(_qoldi>0){
       if(_qoldi>total*0.5){toast('To\u2018lov summasi juda kam \u2014 tekshiring');return;}
+      var _flS=_minFloor();
+      if(_flS>0&&(total-_qoldi)<_flS){toast('\u26d4 Eng past narxdan past tushadi \u2014 chegirma mumkin emas');return;}
       if(!confirm('Qolgan '+grp(_qoldi)+' so\u2018m CHEGIRMA qilinsinmi?\n\nOK \u2014 ha, chek '+grp(total-_qoldi)+' so\u2018m bo\u2018ladi.'))return;
       disc+=_qoldi; total-=_qoldi; _fBase-=_qoldi; sale_chegirmaKam=_qoldi;
     }
@@ -4268,7 +4289,9 @@ function prodForm(id){
    '<div style="display:flex;gap:8px"><select id="pfCat" class="seller" style="flex:1;max-width:none;margin:8px 0">'+catOpts+'<option value="__new">\u2795 Yangi\u2026</option><option value=""'+(curCat===''?' selected':'')+'>\u2014 yo\u2018q \u2014</option></select><select id="pfUnit" class="seller" style="width:104px;max-width:none;margin:8px 0">'+uOpts+'</select></div>'+
    '<input id="pfCatNew" class="kf-inp" placeholder="Yangi kategoriya nomi" style="display:none">'+
    '<div style="display:flex;gap:8px"><input id="pfXarid" class="kf-inp" inputmode="numeric" placeholder="Xarid narxi" oninput="_pfCalc(\'x\')" value="'+(p&&p.xarid?p.xarid:'')+'"><input id="pfUst" class="kf-inp" inputmode="numeric" placeholder="Ustama %" oninput="_pfCalc(\'u\')" value="'+_pfInitUst(p)+'"></div>'+
-   '<div style="display:flex;gap:8px"><input id="pfSotuv" class="kf-inp" inputmode="numeric" placeholder="Sotuv narxi" oninput="_pfCalc(\'s\')" value="'+(p&&p.sotuv?p.sotuv:'')+'"><input id="pfOptom" class="kf-inp" inputmode="numeric" placeholder="Optom narx (ixtiyoriy)" value="'+(p&&p.optom?p.optom:'')+'"></div>'+(p?('<input class="kf-inp" value="Qoldiq: '+grp(p.qoldiq)+'" disabled style="opacity:.6;width:100%;box-sizing:border-box">'):'<input id="pfQty" class="kf-inp" inputmode="numeric" placeholder="Boshlang\u2018ich qoldiq">')+'<label style="display:flex;align-items:center;gap:8px;margin:10px 2px 4px;font-size:14px;cursor:pointer"><input type="checkbox" id="pfErkin" style="width:18px;height:18px"'+((p&&p.erkin)?' checked':'')+'> \ud83d\udd13 Erkin narx (sotuvda narx so\u2018raladi)</label>'+
+   '<div style="display:flex;gap:8px"><input id="pfSotuv" class="kf-inp" inputmode="numeric" placeholder="Sotuv narxi" oninput="_pfCalc(\'s\')" value="'+(p&&p.sotuv?p.sotuv:'')+'"><input id="pfOptom" class="kf-inp" inputmode="numeric" placeholder="Optom narx (ixtiyoriy)" value="'+(p&&p.optom?p.optom:'')+'"></div>'+
+   '<input id="pfMin" class="kf-inp" inputmode="numeric" placeholder="\u26d4 Eng past sotuv narxi" value="'+(p&&p.minn?p.minn:'')+'">'+
+   '<div style="font-size:11px;color:#6b7280;margin:0 2px 8px">Sotuvchi shundan past narxda sota olmaydi. Xarid narxi sotuvchiga ko\u2018rinmaydi.</div>'+(p?('<input class="kf-inp" value="Qoldiq: '+grp(p.qoldiq)+'" disabled style="opacity:.6;width:100%;box-sizing:border-box">'):'<input id="pfQty" class="kf-inp" inputmode="numeric" placeholder="Boshlang\u2018ich qoldiq">')+'<label style="display:flex;align-items:center;gap:8px;margin:10px 2px 4px;font-size:14px;cursor:pointer"><input type="checkbox" id="pfErkin" style="width:18px;height:18px"'+((p&&p.erkin)?' checked':'')+'> \ud83d\udd13 Erkin narx (sotuvda narx so\u2018raladi)</label>'+
    (p?'<div style="font-size:11px;color:#6b7280;margin:0 2px 8px">Qoldiqni Kirim orqali o\u2018zgartiring</div>':'')+
    '<div style="display:flex;gap:10px;margin-top:6px"><button type="button" style="flex:1;padding:12px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit" onclick="var o=document.getElementById(\'prodOv\');if(o)o.remove();">Bekor</button><button type="button" style="flex:2;padding:12px;border:0;background:#1F4E79;color:#fff;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit" onclick="prodFormSave(\''+(id||'')+'\')">\ud83d\udcbe Saqlash</button></div>'+
    '</div>';
@@ -4284,17 +4307,17 @@ function prodFormSave(id){
   var unit=document.getElementById('pfUnit').value||'dona';
   var xarid=Math.round(_pf(document.getElementById('pfXarid').value)||0);
   var sotuv=Math.round(_pf(document.getElementById('pfSotuv').value)||0);
-  var optom=Math.round(_pf(document.getElementById('pfOptom').value)||0);var erkin=!!(document.getElementById('pfErkin')&&document.getElementById('pfErkin').checked);
+  var optom=Math.round(_pf(document.getElementById('pfOptom').value)||0);var minn=Math.round(_pf((document.getElementById('pfMin')||{}).value)||0);var erkin=!!(document.getElementById('pfErkin')&&document.getElementById('pfErkin').checked);
   var pid=id;
   if(!id){
     if(!bar)bar=genBarcode();
     pid='new'+Date.now()+Math.floor(Math.random()*1000);
     var qty=Math.round(_pf((document.getElementById('pfQty')||{}).value)||0);
-    commitEvent('prodadd',{id:pid,nom:nom,sotuv:sotuv,xarid:xarid,qoldiq:qty,barcode:bar,artikul:'',olchov:unit,kategoriya:cat||'Yangi',erkin:erkin});
+    commitEvent('prodadd',{id:pid,nom:nom,sotuv:sotuv,xarid:xarid,minn:minn,qoldiq:qty,barcode:bar,artikul:'',olchov:unit,kategoriya:cat||'Yangi',erkin:erkin});
   }else{
     var p=findProd(id);
     if(p&&(p.nom!==nom||(p.kategoriya||'')!==(cat||'')||(p.olchov||'dona')!==unit||(bar&&(p.barcode||'')!==bar)||(!!p.erkin)!==erkin))commitEvent('prodedit',{pid:id,nom:nom,kategoriya:cat,olchov:unit,barcode:bar||(p.barcode||''),erkin:erkin});
-    if(p&&(p.sotuv!==sotuv||p.xarid!==xarid))commitEvent('reprice',{pid:id,sotuv:sotuv,xarid:xarid,nom:nom});
+    if(p&&(p.sotuv!==sotuv||p.xarid!==xarid||(p.minn||0)!==minn))commitEvent('reprice',{pid:id,sotuv:sotuv,xarid:xarid,minn:minn,nom:nom});
   }
   var pnow=findProd(pid);
   if(pnow&&(pnow.optom||0)!==optom)commitEvent('optom',{pid:pid,optom:optom,nom:nom});
@@ -5027,7 +5050,7 @@ function applyEvent(ev){
     var cu=getCust();(pl.list||[]).forEach(function(it){var cf=0;for(var ci=0;ci<cu.length;ci++){if(cu[ci].nom===it.nom){cu[ci].debt=it.debt||0;if(it.phone)cu[ci].phone=it.phone;cf=1;break;}}if(!cf)cu.push({id:uid('cust'),nom:it.nom,phone:it.phone||'',debt:it.debt||0});});setCust(cu);
   }else if(ev.kind==='supdel'||ev.kind==='custdel'){
     var typ=(ev.kind==='supdel')?'sup':'cust';var d2=((typ==='sup')?getSup():getCust()).filter(function(x){return x.id!==pl.id;});if(typ==='sup')setSup(d2);else setCust(d2);
-  }else if(ev.kind==='adjust'){var pa=findProd(pl.pid);if(pa)pa.qoldiq=pl.to;}else if(ev.kind==='config'){if(pl.pins){try{localStorage.setItem('omb_pins',JSON.stringify(pl.pins));}catch(e){}}}else if(ev.kind==='prodadd'){if(!findProd(pl.id)){var np={id:pl.id,nom:pl.nom,artikul:pl.artikul||'',barcode:pl.barcode||'',olchov:pl.olchov||'dona',kategoriya:pl.kategoriya||'',brend:'',sotuv:pl.sotuv||0,xarid:pl.xarid||0,qoldiq:pl.qoldiq||0,marja:0,arxiv:false,erkin:(pl.erkin?true:false)};np._s=(np.nom+' '+np.brend+' '+np.kategoriya).toLowerCase();PRODUCTS.push(np);if(np.barcode){if(!BCX[np.barcode])BCX[np.barcode]=[];BCX[np.barcode].push(np);}}}else if(ev.kind==='reprice'){var rp=findProd(pl.pid);if(rp){if(pl.sotuv!=null)rp.sotuv=pl.sotuv;if(pl.xarid!=null)rp.xarid=pl.xarid;}}else if(ev.kind==='writeoff'){var wp=findProd(pl.pid);if(wp)wp.qoldiq=Math.round((wp.qoldiq-pl.qty)*1000)/1000;}else if(ev.kind==='optom'){var oo=findProd(pl.pid);if(oo&&pl.optom!=null)oo.optom=pl.optom;}else if(ev.kind==='prodsup'){var psx=findProd(pl.pid);if(psx)psx.supId=(pl.supId||'');}else if(ev.kind==='prodimg'){var pix=findProd(pl.pid);if(pix)pix.img=(pl.url||'');}else if(ev.kind==='prodedit'){var pe=findProd(pl.pid);if(pe){if(pl.nom!=null)pe.nom=pl.nom;if(pl.kategoriya!=null)pe.kategoriya=pl.kategoriya;if(pl.olchov!=null)pe.olchov=pl.olchov;if(pl.barcode!=null&&pl.barcode!=='')pe.barcode=pl.barcode;if(pl.erkin!=null)pe.erkin=!!pl.erkin;pe._s=((pe.nom||'')+' '+(pe.brend||'')+' '+(pe.kategoriya||'')).toLowerCase();}}else if(ev.kind==='draft'){var _drL=getDrafts(),_drI=-1;for(var _drX=0;_drX<_drL.length;_drX++)if(_drL[_drX].id===pl.id){_drI=_drX;break;}var _drO={id:pl.id,ts:pl.ts||ev.ts,label:pl.label,cust:pl.cust,pay:pl.pay,cart:pl.cart||[],seller:ev.seller||'',type:(pl.type||'kechik')};if(_drI>=0)_drL[_drI]=_drO;else _drL.unshift(_drO);setDrafts(_drL);}else if(ev.kind==='draftdel'){var _drZ=getDrafts();for(var _drY=0;_drY<_drZ.length;_drY++)if(_drZ[_drY].id===pl.id){_drZ.splice(_drY,1);break;}setDrafts(_drZ);}
+  }else if(ev.kind==='adjust'){var pa=findProd(pl.pid);if(pa)pa.qoldiq=pl.to;}else if(ev.kind==='config'){if(pl.pins){try{localStorage.setItem('omb_pins',JSON.stringify(pl.pins));}catch(e){}}}else if(ev.kind==='prodadd'){if(!findProd(pl.id)){var np={id:pl.id,nom:pl.nom,artikul:pl.artikul||'',barcode:pl.barcode||'',olchov:pl.olchov||'dona',kategoriya:pl.kategoriya||'',brend:'',sotuv:pl.sotuv||0,xarid:pl.xarid||0,minn:pl.minn||0,qoldiq:pl.qoldiq||0,marja:0,arxiv:false,erkin:(pl.erkin?true:false)};np._s=(np.nom+' '+np.brend+' '+np.kategoriya).toLowerCase();PRODUCTS.push(np);if(np.barcode){if(!BCX[np.barcode])BCX[np.barcode]=[];BCX[np.barcode].push(np);}}}else if(ev.kind==='reprice'){var rp=findProd(pl.pid);if(rp){if(pl.sotuv!=null)rp.sotuv=pl.sotuv;if(pl.xarid!=null)rp.xarid=pl.xarid;if(pl.minn!=null)rp.minn=pl.minn;}}else if(ev.kind==='writeoff'){var wp=findProd(pl.pid);if(wp)wp.qoldiq=Math.round((wp.qoldiq-pl.qty)*1000)/1000;}else if(ev.kind==='optom'){var oo=findProd(pl.pid);if(oo&&pl.optom!=null)oo.optom=pl.optom;}else if(ev.kind==='prodsup'){var psx=findProd(pl.pid);if(psx)psx.supId=(pl.supId||'');}else if(ev.kind==='prodimg'){var pix=findProd(pl.pid);if(pix)pix.img=(pl.url||'');}else if(ev.kind==='prodedit'){var pe=findProd(pl.pid);if(pe){if(pl.nom!=null)pe.nom=pl.nom;if(pl.kategoriya!=null)pe.kategoriya=pl.kategoriya;if(pl.olchov!=null)pe.olchov=pl.olchov;if(pl.barcode!=null&&pl.barcode!=='')pe.barcode=pl.barcode;if(pl.erkin!=null)pe.erkin=!!pl.erkin;pe._s=((pe.nom||'')+' '+(pe.brend||'')+' '+(pe.kategoriya||'')).toLowerCase();}}else if(ev.kind==='draft'){var _drL=getDrafts(),_drI=-1;for(var _drX=0;_drX<_drL.length;_drX++)if(_drL[_drX].id===pl.id){_drI=_drX;break;}var _drO={id:pl.id,ts:pl.ts||ev.ts,label:pl.label,cust:pl.cust,pay:pl.pay,cart:pl.cart||[],seller:ev.seller||'',type:(pl.type||'kechik')};if(_drI>=0)_drL[_drI]=_drO;else _drL.unshift(_drO);setDrafts(_drL);}else if(ev.kind==='draftdel'){var _drZ=getDrafts();for(var _drY=0;_drY<_drZ.length;_drY++)if(_drZ[_drY].id===pl.id){_drZ.splice(_drY,1);break;}setDrafts(_drZ);}
   else if(ev.kind==='aritem'){if(pl.del){for(var ai=0;ai<ARITEMS.length;ai++){if(ARITEMS[ai].id===pl.id){ARITEMS.splice(ai,1);break;}}}else{var af=0;for(var ai2=0;ai2<ARITEMS.length;ai2++){if(ARITEMS[ai2].id===pl.id){ARITEMS[ai2]={id:pl.id,nom:pl.nom,kun:pl.kun,soat:pl.soat};af=1;break;}}if(!af)ARITEMS.push({id:pl.id,nom:pl.nom,kun:pl.kun,soat:pl.soat});}}
   else if(ev.kind==='arout'){ARENTALS[pl.rid]={rid:pl.rid,itemId:pl.itemId,nom:pl.nom,mijoz:pl.mijoz,kun:pl.kun,soat:pl.soat,tsOut:pl.ts,zalog:pl.zalog||0,closed:false};}
   else if(ev.kind==='arin'){if(ARENTALS[pl.rid]){ARENTALS[pl.rid].closed=true;ARENTALS[pl.rid].tsIn=pl.ts;ARENTALS[pl.rid].haqi=pl.haqi;ARENTALS[pl.rid].method=pl.method;}}
@@ -5837,7 +5860,7 @@ try{
 
 <nav id="sideNav" aria-label="Asosiy menyu">
   <div class="sb-head">
-    <div class="sb-h1" id="sbTitle">Mening omborim</div>
+    <div class="sb-h1" id="sbTitle">—</div>
     <div class="sb-sub" id="sbSub">—</div>
   </div>
   <div id="sbBody"></div>
@@ -5876,6 +5899,11 @@ try{
     return i?i.textContent.trim():'•';
   }
 
+  (function(){ /* nomni sahifadan olamiz */
+    var h=document.querySelector('header h1');
+    var t=document.getElementById('sbTitle');
+    if(t)t.textContent=(h&&h.textContent.trim())||document.title.split('—')[0].trim()||'—';
+  })();
   var host=document.getElementById('sbBody');
   var drop=document.getElementById('menuDrop');
   if(!host||!drop) return;
@@ -5961,6 +5989,100 @@ try{
   setInterval(sync,1200);
   sync();
 
+
+  /* ===== SANAGICH: qaysi hisobot va bo'lim necha marta ochilgan =====
+     Faqat shu qurilmada saqlanadi, hech narsa yuborilmaydi.
+     Ko'rish: chap menyu pastidagi versiya raqamini bosing. */
+  (function(){
+    var K='__use_stat';
+    function load(){try{return JSON.parse(localStorage.getItem(K))||{};}catch(e){return {};}}
+    function save(o){try{localStorage.setItem(K,JSON.stringify(o));}catch(e){}}
+    var D=load();
+    if(!D.rep)D.rep={}; if(!D.view)D.view={}; if(!D.since)D.since=Date.now();
+
+    function bump(kind,id){
+      if(!id)return;
+      var m=D[kind]; if(!m[id])m[id]={n:0,last:0};
+      m[id].n++; m[id].last=Date.now(); save(D);
+    }
+
+    var lastRep=null,lastView=null;
+    setInterval(function(){
+      var hv=document.getElementById('view-hisobot');
+      var sel=document.getElementById('htabSel');
+      if(hv&&hv.classList.contains('active')&&sel){
+        if(sel.value&&sel.value!==lastRep){ lastRep=sel.value; bump('rep',sel.value); }
+      }else lastRep=null;
+      var vs=document.querySelectorAll('.view');
+      for(var i=0;i<vs.length;i++){
+        if(vs[i].classList.contains('active')){
+          var id=(vs[i].id||'').replace('view-','');
+          if(id&&id!==lastView){ lastView=id; bump('view',id); }
+          break;
+        }
+      }
+    },1000);
+
+    /* --- ko'rish oynasi --- */
+    function nameOf(id){
+      var o=document.querySelector('#htabSel option[value="'+id+'"]');
+      return o?o.textContent.trim():id;
+    }
+    function dstr(t){ if(!t)return '—'; var d=new Date(t);
+      return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear(); }
+    function rows(map,namer){
+      var a=[]; for(var k in map) if(map.hasOwnProperty(k)) a.push([k,map[k].n,map[k].last]);
+      a.sort(function(x,y){return y[1]-x[1];});
+      var h='';
+      for(var i=0;i<a.length;i++)
+        h+='<tr><td style="padding:4px 8px">'+namer(a[i][0])+'</td>'+
+           '<td style="padding:4px 8px;text-align:right;font-weight:700">'+a[i][1]+'</td>'+
+           '<td style="padding:4px 8px;color:#8a94a6;font-size:11px">'+dstr(a[i][2])+'</td></tr>';
+      return h||'<tr><td style="padding:8px;color:#8a94a6">hali yozilmagan</td></tr>';
+    }
+    function hechOchilmagan(){
+      var sel=document.getElementById('htabSel'); if(!sel)return '';
+      var os=sel.querySelectorAll('option'), out=[];
+      for(var i=0;i<os.length;i++) if(!D.rep[os[i].value]) out.push(os[i].textContent.trim());
+      return out.length? out.join(', ') : 'yo‘q — hammasi ochilgan';
+    }
+    function show(){
+      var d=document.createElement('div');
+      d.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(15,25,40,.55);display:flex;'+
+        'align-items:center;justify-content:center;padding:20px';
+      d.onclick=function(e){ if(e.target===d)d.remove(); };
+      d.innerHTML='<div style="background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:84vh;'+
+        'overflow:auto;padding:18px 20px;font-size:13px;color:#1a1a1a">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'+
+          '<b style="font-size:16px;flex:1">Foydalanish statistikasi</b>'+
+          '<button id="usX" style="border:none;background:#f1f3f5;border-radius:8px;padding:6px 11px;cursor:pointer">✕</button></div>'+
+        '<div style="color:#8a94a6;font-size:11.5px;margin-bottom:12px">'+dstr(D.since)+' dan beri · faqat shu qurilmada</div>'+
+        '<b style="font-size:13px">Hisobotlar</b>'+
+        '<table style="width:100%;border-collapse:collapse;margin:6px 0 14px">'+rows(D.rep,nameOf)+'</table>'+
+        '<b style="font-size:13px">Bo‘limlar</b>'+
+        '<table style="width:100%;border-collapse:collapse;margin:6px 0 14px">'+rows(D.view,function(x){return x;})+'</table>'+
+        '<div style="background:#FFF8E6;border:1px solid #F0DFAE;border-radius:9px;padding:9px 11px;margin-bottom:12px">'+
+          '<b style="font-size:12px">Hech ochilmaganlari:</b><div style="font-size:12px;color:#6b5a2a;margin-top:3px">'+hechOchilmagan()+'</div></div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<button id="usCopy" style="border:1px solid #cfd6de;background:#f6f8fa;border-radius:8px;padding:7px 13px;cursor:pointer">Nusxa olish</button>'+
+          '<button id="usClear" style="border:1px solid #f0c6c6;background:#fdf1f1;color:#a32d2d;border-radius:8px;padding:7px 13px;cursor:pointer">Tozalash</button>'+
+        '</div></div>';
+      document.body.appendChild(d);
+      d.querySelector('#usX').onclick=function(){d.remove();};
+      d.querySelector('#usCopy').onclick=function(){
+        var t=JSON.stringify(D,null,1);
+        try{ if(navigator.clipboard)navigator.clipboard.writeText(t); }catch(e){}
+        this.textContent='Nusxa olindi';
+      };
+      d.querySelector('#usClear').onclick=function(){
+        if(!confirm('Statistika tozalansinmi?'))return;
+        D={rep:{},view:{},since:Date.now()}; save(D); d.remove();
+      };
+    }
+    var v=document.getElementById('sbVer');
+    if(v){ v.style.cursor='pointer'; v.title='Foydalanish statistikasi'; v.onclick=show; }
+  })();
+
   /* ===== Dashboarddagi ikkita qarz chizig'ini bitta qatorga birlashtiramiz ===== */
   function qarzMerge(){
     var v=document.getElementById('view-hisobot');
@@ -6035,6 +6157,78 @@ try{
     },800);
   })();
 
+
+  /* ===== HISOBOTLARNI BIRLASHTIRISH =====
+     20 ta hisobot 8 ta ekranga yig'ildi. Har bir ekran ichida yorliqlar.
+     Hisoblash kodiga tegilmagan: har bir yorliq o'zining eski
+     renderH_* funksiyasini chaqiradi (setHTab orqali). */
+  var RGROUPS=[
+    {id:'g_dash',  nom:'Dashboard',          ico:'\u{1F4CA}', t:['dashboard']},
+    {id:'g_savdo', nom:'Savdo',              ico:'\u{1F6D2}', t:['kunlik','oylik','tolovturi']},
+    {id:'g_foyda', nom:'Foyda',              ico:'\u{1F4C8}', t:['pnl','foydatovar','abc']},
+    {id:'g_tovar', nom:'Tovar',              ico:'\u{1F4E6}', t:['tovarlar','qoldiq','tahlil','hujjatsiz']},
+    {id:'g_pul',   nom:'Pul',                ico:'\u{1F4B0}', t:['moliya','chiqim','cheklar','naklad']},
+    {id:'g_mijoz', nom:'Mijoz va ta‘minot', ico:'\u{1F464}', t:['qarz','custtype','taminot']},
+    {id:'g_xodim', nom:'Xodim',              ico:'\u{1F477}', t:['sotuvchi','smena']},
+    {id:'g_tekshir',nom:'Tekshiruv',         ico:'\u{1F50E}', t:['vozvrat','audit']}
+  ];
+  function tabBor(id){ return !!document.querySelector('#htabSel option[value="'+id+'"]'); }
+  function tabsOf(g){
+    var a=[]; for(var i=0;i<g.t.length;i++) if(tabBor(g.t[i])) a.push(g.t[i]);
+    return a;
+  }
+  function grpOf(t){
+    for(var i=0;i<RGROUPS.length;i++)
+      for(var j=0;j<RGROUPS[i].t.length;j++) if(RGROUPS[i].t[j]===t) return RGROUPS[i];
+    return null;
+  }
+  function tabName(id){
+    var o=document.querySelector('#htabSel option[value="'+id+'"]');
+    return o?o.textContent.trim():id;
+  }
+  function goTab(id){
+    if(typeof window.setHTab==='function')window.setHTab(id);
+    else{ var s=document.getElementById('htabSel'); if(s){s.value=id; if(window.setHTabSel)window.setHTabSel(id);} }
+  }
+
+  /* --- ekran ichidagi yorliqlar qatori --- */
+  (function(){
+    var body=document.getElementById('bugunBody');
+    if(!body)return;
+    var bar=document.createElement('div');
+    bar.id='rTabs';
+    bar.style.cssText='display:none;gap:6px;flex-wrap:wrap;margin:0 0 12px';
+    body.parentNode.insertBefore(bar,body);
+
+    var lastKey='';
+    function draw(){
+      var cur=(typeof HTAB!=='undefined')?HTAB:(document.getElementById('htabSel')||{}).value;
+      var g=grpOf(cur);
+      var ts=g?tabsOf(g):[];
+      if(!g||ts.length<2){ bar.style.display='none'; lastKey=''; return; }
+      var key=g.id+'|'+cur;
+      if(key===lastKey){ bar.style.display='flex'; return; }
+      lastKey=key;
+      var h='';
+      for(var i=0;i<ts.length;i++){
+        var on=(ts[i]===cur);
+        h+='<button type="button" data-t="'+ts[i]+'" style="'+
+           'border:1px solid '+(on?'#1F4E79':'#dde2e8')+';background:'+(on?'#1F4E79':'#fff')+';'+
+           'color:'+(on?'#fff':'#4a5568')+';border-radius:9px;padding:7px 14px;font-size:13px;'+
+           'font-weight:700;cursor:pointer;font-family:inherit">'+tabName(ts[i])+'</button>';
+      }
+      bar.innerHTML=h;
+      var bs=bar.querySelectorAll('button');
+      for(var k=0;k<bs.length;k++)(function(b){
+        b.onclick=function(){ goTab(b.getAttribute('data-t')); setTimeout(draw,60); };
+      })(bs[k]);
+      bar.style.display='flex';
+    }
+    setInterval(draw,600);
+    draw();
+    window.__rTabsDraw=draw;
+  })();
+
   /* ===== HISOBOT RO'YXATI — chap menyuga ===== */
   (function(){
     var sel=document.getElementById('htabSel');
@@ -6046,6 +6240,24 @@ try{
     hostItem.parentNode.insertBefore(box,hostItem.nextSibling);
 
     function build(){
+      box.innerHTML='';
+      /* birlashtirilgan 8 ta ekran */
+      for(var gi=0;gi<RGROUPS.length;gi++){
+        (function(g){
+          var ts=tabsOf(g);
+          if(!ts.length)return;               /* bu faylda bunday hisobot yo'q */
+          var b=document.createElement('button');
+          b.type='button'; b.className='sb-ritem';
+          b.setAttribute('data-r',ts[0]);
+          b.setAttribute('data-g',g.id);
+          b.textContent=g.ico+' '+g.nom;
+          b.onclick=function(){ goTab(ts[0]); lsSet(LASTKEY,ts[0]); repSync(); };
+          box.appendChild(b);
+        })(RGROUPS[gi]);
+      }
+      return;
+    }
+    function buildOld(){
       box.innerHTML='';
       var f=document.createElement('input');
       f.type='text'; f.className='sb-find'; f.placeholder='Hisobot qidirish…';
@@ -6117,10 +6329,12 @@ try{
       if(!OPEN)return;
       if(box.children.length===0)build();
       var cur=sel.value;
+      var g=grpOf(cur);
       var bs=box.querySelectorAll('.sb-ritem');
       for(var i=0;i<bs.length;i++){
-        if(bs[i].getAttribute('data-r')===cur)bs[i].classList.add('active');
-        else bs[i].classList.remove('active');
+        var gg=bs[i].getAttribute('data-g');
+        var on = g ? (gg===g.id) : (bs[i].getAttribute('data-r')===cur);
+        if(on)bs[i].classList.add('active'); else bs[i].classList.remove('active');
       }
     }
 
